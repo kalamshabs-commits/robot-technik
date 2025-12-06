@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <!-- Запрещаем зум, чтобы было как нативное приложение -->
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  
+  <!-- Цвет шапки (Android) -->
+  <meta name="theme-color" content="#1976d2">
+  
+  <!-- Настройки для iOS (iPhone) -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Робот-техник">
+
+  <!-- ВАЖНО: Исправленные пути к static -->
+  <link rel="manifest" href="/static/manifest.json">
+  <link rel="shortcut icon" href="/static/icons/robot-technik.png">
+  <link rel="apple-touch-icon" href="/static/icons/robot-technik.png">
+
+  <!-- Стили тоже берем из static -->
+  <link rel="stylesheet" href="/static/style.css">
+  
+  <title>Робот-техник</title>
+</head>
+<body>
+  <main>
+    <!-- Вкладка ГЛАВНАЯ (Диагностика) -->
+    <section id="home" class="view active">
+      <h1>Диагностика</h1>
+      
+      <div class="actions-grid">
+        <label class="big-btn" for="cameraInput">
+          <span style="font-size: 24px;">📸</span><br>Сделать фото
+        </label>
+        <input id="cameraInput" type="file" accept="image/*" capture="environment" style="display:none">
+        
+        <label class="big-btn" for="galleryInput">
+          <span style="font-size: 24px;">🖼️</span><br>Из галереи
+        </label>
+        <input id="galleryInput" type="file" accept="image/*" style="display:none">
+      </div>
+
+      <div id="resultBox" class="card" style="display:none">
+        <div id="previewWrap">
+          <img id="previewImg" alt="Preview" style="max-width:100%; border-radius: 8px;">
+        </div>
+        
+        <div id="detectedText" class="chip" style="margin-top: 10px; font-weight: bold;"></div>
+        
+        <div id="symptomBox" style="margin-top:15px; display:none">
+          <label for="symptomInput" style="font-size: 14px; color: #666;">Что случилось?</label>
+          <input id="symptomInput" type="text" placeholder="Например: жует бумагу" style="margin-bottom: 10px;">
+          
+          <div class="action-bar">
+            <button id="solveBtn" class="primary-btn">Получить решение</button>
+            <button id="printBtn" class="secondary-btn" style="display: none;">📥 Скачать</button>
+          </div>
+        </div>
+
+        <div id="aiChecklist"></div>
+        <div id="deviceFallback" class="kb-filters" style="display:none; margin-top:8px"></div>
+      </div>
+
+      <!-- Кнопка установки (скрыта по умолчанию, покажется через JS) -->
+      <div class="action-bar" style="margin-top:20px; justify-content: center;">
+        <button id="installBtn" style="display:none; background-color: #4caf50; color: white; border: none; padding: 10px 20px; border-radius: 20px;">
+          📲 Установить приложение
+        </button>
+      </div>
+    </section>
+
+    <!-- Вкладка ЧАТ -->
+    <section id="chat" class="view">
+      <h1>Чат-помощник</h1>
+      <div id="chatOut">
+        <div class="msg-ai">Привет! Я Робот-техник. Опишите проблему, и я подскажу решение.</div>
+      </div>
+      
+      <div class="chat-controls">
+        <input id="chatInput" type="text" placeholder="Введите вопрос...">
+        <div class="chat-buttons">
+            <button id="micBtn">🎙️</button>
+            <button id="sendBtn">➤</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Вкладка БАЗА ЗНАНИЙ -->
+    <section id="knowledge" class="view">
+      <h1>База знаний</h1>
+      <div class="kb-filters" id="kbFilters"></div>
+      <div class="kb-list" id="kbList"></div>
+    </section>
+  </main>
+
+  <nav class="tabbar">
+    <button data-view="home" class="tab active">
+        <span>📷</span>
+        <span>Главная</span>
+    </button>
+    <button data-view="chat" class="tab">
+        <span>💬</span>
+        <span>Чат</span>
+    </button>
+    <button data-view="knowledge" class="tab">
+        <span>📚</span>
+        <span>База</span>
+    </button>
+  </nav>
+
+  <!-- Подключение скрипта (убедитесь, что путь верный) -->
+  <script src="/static/js/script.js"></script>
+
+  <!-- ВАЖНО: Регистрация Service Worker (Без этого кнопки "Установить" НЕ БУДЕТ) -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/static/sw.js')
+          .then((reg) => console.log('Service Worker зарегистрирован!', reg))
+          .catch((err) => console.log('Ошибка SW:', err));
+      });
+    }
+
+    // Логика кнопки "Установить"
+    let deferredPrompt;
+    const installBtn = document.getElementById('installBtn');
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+      // Браузер хочет показать установку. Мы перехватываем это событие.
+      e.preventDefault();
+      deferredPrompt = e;
+      // Показываем нашу кнопку
+      installBtn.style.display = 'block';
+    });
+
+    installBtn.addEventListener('click', async () => {
+      if (deferredPrompt) {
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        console.log(`User choice: ${outcome}`);
+        deferredPrompt = null;
+        installBtn.style.display = 'none';
+      }
+    });
+  </script>
+</body>
+</html>

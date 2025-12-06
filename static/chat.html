@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="manifest" href="/manifest.json">
+  <link rel="stylesheet" href="/style.css">
+  <title>Чат-советник — Робот-техник</title>
+</head>
+<body>
+  <main>
+    <h1>Чат-советник</h1>
+    <nav class="nav">
+      <a class="btn" href="/" aria-label="На главную">Главная</a>
+      <a class="btn" href="/photo" aria-label="Диагностика по фото">Диагностика по фото</a>
+      <a class="btn" href="/knowledge.html" aria-label="База знаний">База знаний</a>
+      <a class="btn" href="/voice" aria-label="Голосовой ввод">Голосовой ввод</a>
+    </nav>
+    <section>
+      <input id="chatInput" type="text" aria-label="Поле ввода вопроса" placeholder="Например: «Печатает полосы при копировании»">
+      <div class="action-bar" style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">
+        <button id="askBtn" aria-label="Отправить вопрос">Отправить</button>
+        <button id="voiceBtn" aria-label="Голосовой ввод">🎙️ Голос</button>
+        <button id="speakBtn" aria-label="Озвучить ответ">🔊 Озвучить ответ</button>
+        <button id="advisorClear" aria-label="Очистить историю">Очистить</button>
+        <button id="advisorDownload" aria-label="Скачать диалог">📄 Скачать диалог</button>
+      </div>
+      <div id="chatOut" style="margin-top:8px"></div>
+    </section>
+    <section>
+      <h2>Чат-советник (история)</h2>
+      <div id="advisorHistory"></div>
+      <div class="controls" style="margin-top:8px">
+        <textarea id="advisorInput" aria-label="Введите сообщение" placeholder="Введите сообщение" rows="3"></textarea>
+        <div class="actions" style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">
+          <button id="advisorSend" aria-label="Отправить сообщение">Отправить</button>
+          <button id="advisorVoice" aria-label="Голосовой ввод">🎙️ Голос</button>
+          <button id="advisorClear2" aria-label="Очистить историю">Очистить</button>
+        </div>
+      </div>
+    </section>
+  </main>
+  <script src="/js/main.js"></script>
+  <script src="/js/chat.js"></script>
+</body>
+</html>

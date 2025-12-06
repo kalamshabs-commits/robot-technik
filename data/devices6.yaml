@@ -1,0 +1,6 @@
+path: /workspace/devices6
+train: images/train
+val: images/val
+test: images/test
+names: ["принтер","смартфон","ноутбук","микроволновка","хлебопечка","мультиварка"]
+nc: 6

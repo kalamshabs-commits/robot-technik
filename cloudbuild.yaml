@@ -1,0 +1,43 @@
+steps:
+  # Шаг 1: Сборка с использованием кэша (чтобы не качать PyTorch каждый раз)
+  - name: 'gcr.io/cloud-builders/docker'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        docker pull gcr.io/$PROJECT_ID/robot-tech-own:latest || exit 0
+        docker build \
+          -t gcr.io/$PROJECT_ID/robot-tech-own:latest \
+          --cache-from gcr.io/$PROJECT_ID/robot-tech-own:latest \
+          .
+
+  # Шаг 2: Отправка образа в реестр
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'gcr.io/$PROJECT_ID/robot-tech-own:latest']
+
+  # Шаг 3: Деплой с увеличенной памятью
+  - name: 'gcr.io/cloud-builders/gcloud'
+    args:
+      - 'run'
+      - 'deploy'
+      - 'robot-tech-own'
+      - '--image'
+      - 'gcr.io/$PROJECT_ID/robot-tech-own:latest'
+      - '--platform'
+      - 'managed'
+      - '--region'
+      - 'europe-central2'
+      - '--allow-unauthenticated'
+      - '--cpu'
+      - '2'          # 2 CPU достаточно, но память важна
+      - '--memory'
+      - '4Gi'        # <-- ИЗМЕНЕНО: 4 ГБ для стабильной работы нейросети
+      - '--timeout'
+      - '300s'
+      - '--port'
+      - '8080'
+      - '--set-env-vars'
+      - 'YOLO_WEIGHTS_PATH=/app/models/best.pt'
+
+images:
+  - 'gcr.io/$PROJECT_ID/robot-tech-own:latest'

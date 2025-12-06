@@ -1,0 +1,12 @@
+FROM python:3.10-slim-bookworm
+RUN apt-get update && apt-get install -y tesseract-ocr openssl && rm -rf /var/lib/apt/lists/*
+WORKDIR /app
+COPY robot-tech/requirements-server.txt /app/requirements-server.txt
+RUN pip install --no-cache-dir -r /app/requirements-server.txt
+COPY robot-tech/cloud_api /app/cloud_api
+COPY robot-tech/alembic.ini /app/alembic.ini
+COPY robot-tech/alembic /app/alembic
+COPY robot-tech/cloud_api/bootstrap.sh /app/cloud_api/bootstrap.sh
+RUN chmod +x /app/cloud_api/bootstrap.sh
+ENV PORT=8000
+CMD ["uvicorn","cloud_api.ai_main:app","--host","0.0.0.0","--port","8000"]

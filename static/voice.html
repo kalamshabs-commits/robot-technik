@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="manifest" href="/manifest.json">
+  <link rel="stylesheet" href="/style.css">
+  <title>Голосовой ввод — Робот-техник</title>
+</head>
+<body>
+  <main>
+    <h1>Голосовой ввод</h1>
+    <nav class="nav">
+      <a class="btn" href="/">Главная</a>
+      <a class="btn" href="/chat">Чат-советник</a>
+      <a class="btn" href="/photo">Диагностика по фото</a>
+      <a class="btn" href="/knowledge.html">База знаний</a>
+    </nav>
+    <section>
+      <input id="voiceText" type="text" placeholder="Текст распознаётся сюда">
+      <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">
+        <button id="startVoice">🎙️ Начать</button>
+        <button id="sendToChat">Отправить в чат</button>
+      </div>
+      <div id="answer" style="margin-top:8px"></div>
+    </section>
+  </main>
+  <script src="/js/voice.js"></script>
+</body>
+</html>

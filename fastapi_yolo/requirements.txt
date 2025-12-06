@@ -1,0 +1,8 @@
+torch
+torchvision
+ultralytics
+fastapi
+uvicorn[standard]
+aiofiles
+Pillow
+opencv-python-headless

@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="manifest" href="/manifest.json">
+  <link rel="stylesheet" href="/style.css">
+  <title>База знаний — Робот-техник</title>
+</head>
+<body>
+  <main>
+    <h1>База знаний</h1>
+    <nav class="nav">
+      <a class="btn" href="/">Главная</a>
+      <a class="btn" href="/chat">Чат-советник</a>
+      <a class="btn" href="/photo">Диагностика по фото</a>
+      <a class="btn" href="/voice">Голосовой ввод</a>
+    </nav>
+    <section>
+      <input id="search" type="text" aria-label="Поиск по неисправностям" placeholder="Поиск неисправностей">
+      <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
+        <select id="filterDevice" aria-label="Фильтр по типу устройства"><option value="">Все устройства</option></select>
+        <select id="filterBrand" aria-label="Фильтр по бренду"><option value="">Все бренды</option></select>
+        <select id="sortBy" aria-label="Сортировка"><option value="pop">По популярности</option><option value="time">По времени ремонта</option><option value="title">По названию</option></select>
+      </div>
+      <div id="kb" style="margin-top:12px"></div>
+      <div id="kbSentinel" style="height:1px"></div>
+    </section>
+  </main>
+  <script src="/js/knowledge.js"></script>
+</body>
+</html>

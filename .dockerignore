@@ -1,0 +1,13 @@
+.venv/
+venv/
+__pycache__/
+.git/
+.github/
+.vscode/
+*.log
+*.tmp
+node_modules/
+*.zip
+*.tgz
+tmp*/
+*.cache/

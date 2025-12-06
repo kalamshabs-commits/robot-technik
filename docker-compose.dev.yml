@@ -1,0 +1,27 @@
+﻿version: '3.8'
+services:
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_DB=robottech
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=pass
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.server
+    environment:
+      - DATABASE_URL=postgresql+psycopg2://user:pass@postgres:5432/robottech
+    volumes:
+      - ./robot-tech/.env.server:/app/.env.server
+    depends_on:
+      - postgres
+    ports:
+      - "8000:8000"
+    command: ["bash","/app/cloud_api/bootstrap.sh"]
+volumes:
+  pgdata:

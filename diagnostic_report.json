@@ -1,0 +1,12 @@
+{
+  "summary": "Диагностика принтер: катриж приелся",
+  "diagnosisChecklist": [],
+  "repairChecklist": [],
+  "parts": [],
+  "suspectNodes": [],
+  "timeEstimateMinutes": {
+    "min": 10,
+    "max": 60
+  },
+  "risks": []
+}

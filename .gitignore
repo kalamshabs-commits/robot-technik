@@ -1,0 +1,7 @@
+venv/
+.venv/
+robot-tech/.venv/
+__pycache__/
+*.pyc
+*.pt
+*.pth

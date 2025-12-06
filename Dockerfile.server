@@ -1,0 +1,17 @@
+FROM python:3.10-slim-bookworm
+RUN apt-get update && apt-get install -y tesseract-ocr openssl libgl1 && rm -rf /var/lib/apt/lists/*
+WORKDIR /app
+COPY requirements-server.txt /app/requirements-server.txt
+RUN pip install --no-cache-dir -r /app/requirements-server.txt
+COPY cloud_api /app/cloud_api
+COPY cloud_api/ai_helper.py /app/ai_helper.py
+COPY diagnostic_engine.py /app/diagnostic_engine.py
+COPY image_ai.py /app/image_ai.py
+COPY faults_library.json /app/faults_library.json
+COPY cloud_api/recall_parser.py /app/recall_parser.py
+COPY alembic.ini /app/alembic.ini
+COPY alembic /app/alembic
+COPY cloud_api/bootstrap.sh /app/cloud_api/bootstrap.sh
+RUN chmod +x /app/cloud_api/bootstrap.sh
+ENV PORT=8000
+CMD ["/app/cloud_api/bootstrap.sh"]

@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="manifest" href="/manifest.json">
+  <link rel="stylesheet" href="/style.css">
+  <title>Диагностика по фото — Робот-техник</title>
+</head>
+<body>
+  <main>
+    <h1>Диагностика по фото</h1>
+    <nav class="nav">
+      <a class="btn" href="/">Главная</a>
+      <a class="btn" href="/chat">Чат-советник</a>
+      <a class="btn" href="/knowledge.html">База знаний</a>
+      <a class="btn" href="/voice">Голосовой ввод</a>
+    </nav>
+    <section>
+      <p id="status">Готово</p>
+      <button id="openCamera">Сфотографировать прибор / Выбрать файл</button>
+      <input id="file" type="file" accept="image/*" capture="camera" style="display:none">
+    </section>
+    <section id="result"></section>
+    <div id="previewBox">
+      <img id="preview" alt="" style="max-width:100%; display:none">
+      <canvas id="overlay" style="position:absolute; left:0; top:0; display:none"></canvas>
+    </div>
+  </main>
+  <script src="/js/main.js"></script>
+</body>
+</html>

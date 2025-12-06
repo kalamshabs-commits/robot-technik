@@ -1,0 +1,32 @@
+name: security
+on:
+  push:
+    branches: ["main"]
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+      - name: Install pip-audit
+        run: pip install pip-audit
+      - name: Audit server requirements
+        run: pip-audit -r robot-tech/requirements-server.txt
+      - name: Audit client requirements
+        run: pip-audit -r robot-tech/requirements-client.txt
+  zap:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build and run API
+        run: |
+          docker build -f robot-tech/cloud_api/Dockerfile.server -t robottech-api .
+          docker run -d -p 8000:8000 --name api robottech-api
+      - name: OWASP ZAP Baseline
+        uses: zaproxy/action-baseline@v0.13.0
+        with:
+          target: 'http://localhost:8000'
+          rules_file_name: '.zap/rules.tsv'
+          cmd_options: '-a'

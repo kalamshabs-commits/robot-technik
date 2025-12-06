@@ -1,0 +1,1119 @@
+{
+  "last_updated": "2025-06-25",
+  "smartphones": {
+    "Samsung": [
+      {
+        "title": "Быстрый разряд аккумулятора",
+        "symptoms": ["battery", "charging", "heat"],
+        "steps": [
+          "Проверить статистику расхода энергии",
+          "Отключить фоновые службы и геолокацию",
+          "Осмотреть аккумулятор на вздутие",
+          "Проверить ток зарядки другим кабелем и адаптером"
+        ],
+        "risks": ["Повреждение аккумулятора", "Перегрев"],
+        "time_min": 15,
+        "time_max": 40
+      },
+      {
+        "title": "Нестабильная зарядка (Type‑C разъём)",
+        "symptoms": ["usb", "port", "charging"],
+        "steps": [
+          "Осмотреть разъём на загрязнение и люфт",
+          "Очистить разъём мягкой щёткой",
+          "Проверить кабель и адаптер",
+          "Диагностировать плату зарядки"
+        ],
+        "risks": ["Повреждение разъёма"],
+        "time_min": 20,
+        "time_max": 60
+      },
+      {
+        "title": "Мерцание или полосы на экране",
+        "symptoms": ["screen", "display", "flicker"],
+        "steps": [
+          "Проверить автояркость и частоту обновления",
+          "Тестировать в безопасном режиме",
+          "Осмотреть шлейф дисплея",
+          "Проверить модуль дисплея"
+        ],
+        "risks": ["Треснувший шлейф"],
+        "time_min": 25,
+        "time_max": 80
+      }
+    ],
+    "iPhone": [
+      {
+        "title": "Снижение ёмкости аккумулятора",
+        "symptoms": ["battery", "health"],
+        "steps": [
+          "Проверить состояние батареи в настройках",
+          "Отключить фоновые обновления",
+          "Калибровать аккумулятор",
+          "Заменить аккумулятор при износе > 80%"
+        ],
+        "risks": ["Неисправный аккумулятор"],
+        "time_min": 20,
+        "time_max": 50
+      },
+      {
+        "title": "Проблемы с Lightning‑портом",
+        "symptoms": ["lightning", "charging", "port"],
+        "steps": [
+          "Осмотреть порт на загрязнение",
+          "Очистить порт деревянной палочкой",
+          "Проверить оригинальный кабель",
+          "Диагностировать контроллер питания"
+        ],
+        "risks": ["Повреждение контактов"],
+        "time_min": 15,
+        "time_max": 45
+      },
+      {
+        "title": "Face ID не срабатывает",
+        "symptoms": ["face id", "camera"],
+        "steps": [
+          "Очистить датчики TrueDepth",
+          "Проверить камеру в диагностике",
+          "Обновить ПО",
+          "Проверить шлейф фронтальных датчиков"
+        ],
+        "risks": ["Повреждение модуля камеры"],
+        "time_min": 30,
+        "time_max": 70
+      }
+    ]
+  },
+  "laptops": {
+    "Lenovo": [
+      {
+        "title": "Не включается",
+        "symptoms": ["power", "battery", "adapter"],
+        "steps": [
+          "Проверить адаптер питания и кабель",
+          "Извлечь аккумулятор/сбросить питание",
+          "Проверить кнопку включения",
+          "Диагностировать плату питания"
+        ],
+        "risks": ["КЗ на плате"],
+        "time_min": 30,
+        "time_max": 90
+      },
+      {
+        "title": "Шумит вентилятор",
+        "symptoms": ["fan", "noise", "heat"],
+        "steps": [
+          "Очистить систему охлаждения",
+          "Заменить термопасту",
+          "Проверить вращение вентилятора",
+          "Обновить BIOS/профиль охлаждения"
+        ],
+        "risks": ["Перегрев"],
+        "time_min": 40,
+        "time_max": 100
+      },
+      {
+        "title": "Залипают клавиши",
+        "symptoms": ["keyboard", "keys"],
+        "steps": [
+          "Очистить клавиатуру",
+          "Проверить шлейф клавиатуры",
+          "Провести тест клавиш",
+          "Заменить модуль клавиатуры"
+        ],
+        "risks": ["Повреждение шлейфа"],
+        "time_min": 25,
+        "time_max": 70
+      },
+      {
+        "title": "Проблемы с Wi‑Fi",
+        "symptoms": ["wifi", "network"],
+        "steps": [
+          "Обновить драйвер сети",
+          "Проверить антенны Wi‑Fi",
+          "Сбросить сеть",
+          "Проверить модуль Wi‑Fi"
+        ],
+        "risks": ["Разрыв антенны"],
+        "time_min": 20,
+        "time_max": 60
+      }
+    ],
+    "HP": [
+      {
+        "title": "Синий экран",
+        "symptoms": ["bsod", "crash"],
+        "steps": [
+          "Проверить логи ОС",
+          "Обновить драйверы",
+          "Тестировать оперативную память",
+          "Проверить накопитель"
+        ],
+        "risks": ["Сбой драйверов", "Сбой накопителя"],
+        "time_min": 35,
+        "time_max": 90
+      },
+      {
+        "title": "Аккумулятор не заряжается",
+        "symptoms": ["battery", "charging"],
+        "steps": [
+          "Проверить блок питания",
+          "Обновить BIOS",
+          "Диагностировать контроллер зарядки",
+          "Проверить разъём питания"
+        ],
+        "risks": ["Неисправность контроллера"],
+        "time_min": 30,
+        "time_max": 80
+      },
+      {
+        "title": "Некорректная работа тачпада",
+        "symptoms": ["touchpad", "pointer"],
+        "steps": [
+          "Обновить драйвер тачпада",
+          "Проверить кабель тачпада",
+          "Провести чистку",
+          "Заменить модуль"
+        ],
+        "risks": ["Повреждение шлейфа"],
+        "time_min": 20,
+        "time_max": 60
+      },
+      {
+        "title": "Троттлинг при перегреве",
+        "symptoms": ["heat", "throttle"],
+        "steps": [
+          "Очистить охлаждение",
+          "Заменить термопасту",
+          "Проверить теплотрубки",
+          "Настроить профиль производительности"
+        ],
+        "risks": ["Повреждение чипов"],
+        "time_min": 40,
+        "time_max": 100
+      }
+    ]
+  },
+  "microwaves": {
+    "Panasonic": [
+      {
+        "title": "Не греет",
+        "symptoms": ["microwave", "heat"],
+        "steps": [
+          "Проверить напряжение питания",
+          "Проверить предохранитель",
+          "Диагностировать магнетрон",
+          "Проверить диод высокого напряжения"
+        ],
+        "risks": ["Высокое напряжение"],
+        "time_min": 30,
+        "time_max": 90
+      },
+      {
+        "title": "Не вращается стол",
+        "symptoms": ["turntable", "motor"],
+        "steps": [
+          "Проверить привод столика",
+          "Очистить ролики",
+          "Проверить мотор столика",
+          "Заменить привод"
+        ],
+        "risks": ["Повреждение мотора"],
+        "time_min": 20,
+        "time_max": 60
+      },
+      {
+        "title": "Искрит внутри",
+        "symptoms": ["spark", "arcing"],
+        "steps": [
+          "Осмотреть слюдяную пластину",
+          "Очистить камеру от нагара",
+          "Проверить диэлектрики",
+          "Заменить слюду"
+        ],
+        "risks": ["Поражение током"],
+        "time_min": 25,
+        "time_max": 70
+      }
+    ],
+    "LG": [
+      {
+        "title": "Не срабатывает дверной выключатель",
+        "symptoms": ["door", "switch"],
+        "steps": [
+          "Проверить концевые выключатели",
+          "Проверить защёлку двери",
+          "Диагностировать цепь блокировки",
+          "Заменить выключатель"
+        ],
+        "risks": ["Блокировка защиты"],
+        "time_min": 25,
+        "time_max": 70
+      },
+      {
+        "title": "Громкий гул",
+        "symptoms": ["buzz", "noise"],
+        "steps": [
+          "Проверить трансформатор",
+          "Проверить магнетрон",
+          "Проверить крепления",
+          "Измерить ток нагрузки"
+        ],
+        "risks": ["Высокое напряжение"],
+        "time_min": 30,
+        "time_max": 90
+      },
+      {
+        "title": "Не работает клавиатура",
+        "symptoms": ["keypad", "buttons"],
+        "steps": [
+          "Проверить плату управления",
+          "Очистить контакты",
+          "Проверить шлейф",
+          "Заменить панель управления"
+        ],
+        "risks": ["Повреждение платы"],
+        "time_min": 25,
+        "time_max": 80
+      }
+    ]
+  }
+  ,
+  "printers": {
+    "HP": [
+      {
+        "title": "Застревание бумаги",
+        "symptoms": ["paper", "jam", "printer"],
+        "steps": [
+          "Извлечь застрявшую бумагу",
+          "Очистить ролики подачи",
+          "Проверить траекторию листа",
+          "Провести тест печати"
+        ],
+        "risks": ["Повреждение датчиков листа"],
+        "time_min": 20,
+        "time_max": 60
+      },
+      {
+        "title": "Бледная печать",
+        "symptoms": ["faded", "toner", "print"],
+        "steps": [
+          "Проверить уровень тонера",
+          "Встряхнуть картридж",
+          "Очистить корону/лазер",
+          "Проверить узел закрепления"
+        ],
+        "risks": ["Повреждение узла закрепления"],
+        "time_min": 25,
+        "time_max": 70
+      },
+      {
+        "title": "Смазывание изображения",
+        "symptoms": ["smear", "fuser", "toner"],
+        "steps": [
+          "Проверить температуру фьюзера",
+          "Очистить вал переноса",
+          "Заменить картридж",
+          "Диагностировать блок проявки"
+        ],
+        "risks": ["Перегрев фьюзера"],
+        "time_min": 30,
+        "time_max": 90
+      }
+    ],
+    "Canon": [
+      {
+        "title": "Ошибка подачи бумаги",
+        "symptoms": ["paper", "feed", "error"],
+        "steps": [
+          "Проверить датчик подачи",
+          "Очистить тракт бумаги",
+          "Проверить ролики",
+          "Перезапустить принтер"
+        ],
+        "risks": ["Повреждение роликов"],
+        "time_min": 20,
+        "time_max": 60
+      },
+      {
+        "title": "Полосы на печати",
+        "symptoms": ["banding", "lines", "print"],
+        "steps": [
+          "Очистить головку/лазер",
+          "Провести выравнивание",
+          "Заменить картридж",
+          "Проверить блок переноса"
+        ],
+        "risks": ["Повреждение головки"],
+        "time_min": 25,
+        "time_max": 80
+      },
+      {
+        "title": "Не печатает по USB/Wi‑Fi",
+        "symptoms": ["usb", "wifi", "connection"],
+        "steps": [
+          "Переустановить драйвер",
+          "Проверить кабель/сеть",
+          "Сбросить сетевые настройки",
+          "Проверить порт/модуль связи"
+        ],
+        "risks": ["Неисправность порта"],
+        "time_min": 20,
+        "time_max": 60
+      }
+    ]
+    ,
+    "models": [
+      {
+        "device_type": "printer",
+        "brand": "HP",
+        "model": "LaserJet 1020",
+        "symptom": "Замятие бумаги",
+        "cause": "Износ роликов захвата",
+        "solution": "Заменить ролики",
+        "tools": ["отвертка PH2", "пинцет"],
+        "difficulty": 2,
+        "estimated_time": "20-30 мин"
+      },
+      {
+        "device_type": "printer",
+        "brand": "HP",
+        "model": "LaserJet 1020",
+        "symptom": "Бледная печать",
+        "cause": "Низкий уровень тонера",
+        "solution": "Заменить/заправить картридж, очистить корону",
+        "tools": ["перчатки", "салфетки без ворса"],
+        "difficulty": 2,
+        "estimated_time": "25-40 мин"
+      },
+      {
+        "device_type": "printer",
+        "brand": "HP",
+        "model": "LaserJet 1020",
+        "symptom": "Не определяется по USB",
+        "cause": "Сбой драйвера или кабель",
+        "solution": "Переустановить драйвер, проверить кабель и порт",
+        "tools": ["ноутбук", "кабель USB"],
+        "difficulty": 1,
+        "estimated_time": "15-25 мин"
+      },
+      {
+        "device_type": "printer",
+        "brand": "HP",
+        "model": "LaserJet 1020",
+        "symptom": "Подтеки тонера",
+        "cause": "Повреждение картриджа",
+        "solution": "Заменить картридж, очистить тракт",
+        "tools": ["пылесос для техники", "салфетки"],
+        "difficulty": 2,
+        "estimated_time": "20-30 мин"
+      },
+      {
+        "device_type": "printer",
+        "brand": "Canon",
+        "model": "PIXMA MG2540S",
+        "symptom": "Засорение сопел",
+        "cause": "Подсохшие чернила",
+        "solution": "Прочистка через сервисное меню, промывка картриджей",
+        "tools": ["изопропиловый спирт", "шприц"],
+        "difficulty": 3,
+        "estimated_time": "30-60 мин"
+      },
+      {
+        "device_type": "printer",
+        "brand": "Canon",
+        "model": "PIXMA MG2540S",
+        "symptom": "Ошибка подачи бумаги",
+        "cause": "Износ или загрязнение роликов",
+        "solution": "Очистить/заменить ролики, проверить тракт",
+        "tools": ["щетка", "салфетки"],
+        "difficulty": 2,
+        "estimated_time": "20-40 мин"
+      },
+      {
+        "device_type": "printer",
+        "brand": "Canon",
+        "model": "PIXMA MG2540S",
+        "symptom": "Смещение цветов",
+        "cause": "Сбой выравнивания головки",
+        "solution": "Выполнить процедуру выравнивания",
+        "tools": ["ПК", "драйверы Canon"],
+        "difficulty": 1,
+        "estimated_time": "15-25 мин"
+      },
+      {
+        "device_type": "printer",
+        "brand": "Canon",
+        "model": "PIXMA MG2540S",
+        "symptom": "Не работает сканер",
+        "cause": "Сбой драйверов или кабеля",
+        "solution": "Переустановить драйвер, проверить соединения",
+        "tools": ["ноутбук", "USB-кабель"],
+        "difficulty": 1,
+        "estimated_time": "15-25 мин"
+      },
+      {
+        "device_type": "printer",
+        "brand": "Epson",
+        "model": "L805",
+        "symptom": "Полосы на печати",
+        "cause": "Воздух в тракте чернил",
+        "solution": "Прокачать чернила, провести прочистку",
+        "tools": ["шприц", "салфетки"],
+        "difficulty": 3,
+        "estimated_time": "30-60 мин"
+      },
+      {
+        "device_type": "printer",
+        "brand": "Epson",
+        "model": "L805",
+        "symptom": "Не подаёт бумагу",
+        "cause": "Износ подающих роликов",
+        "solution": "Заменить ролики, очистить тракт",
+        "tools": ["отвертка", "щетка"],
+        "difficulty": 2,
+        "estimated_time": "25-45 мин"
+      },
+      {
+        "device_type": "printer",
+        "brand": "Epson",
+        "model": "L805",
+        "symptom": "Потеря Wi‑Fi",
+        "cause": "Сбой модуля связи",
+        "solution": "Сброс сети, обновить прошивку, проверить антенну",
+        "tools": ["ПК", "прошерстка сети"],
+        "difficulty": 2,
+        "estimated_time": "20-40 мин"
+      },
+      {
+        "device_type": "printer",
+        "brand": "Epson",
+        "model": "L805",
+        "symptom": "Заправка не идёт",
+        "cause": "Засор капилляров",
+        "solution": "Промывка трактов чернил",
+        "tools": ["изопропиловый спирт", "шприц"],
+        "difficulty": 3,
+        "estimated_time": "40-70 мин"
+      },
+      {
+        "device_type": "printer",
+        "brand": "HP",
+        "model": "LaserJet P1102",
+        "symptom": "Замятие бумаги",
+        "cause": "Износ роликов подачи",
+        "solution": "Заменить ролики и очистить тракт",
+        "tools": ["отвертка PH2", "щетка"],
+        "difficulty": 2,
+        "estimated_time": "20-30 мин"
+      },
+      {
+        "device_type": "printer",
+        "brand": "HP",
+        "model": "LaserJet P1102",
+        "symptom": "Бледная печать",
+        "cause": "Низкий уровень тонера",
+        "solution": "Заменить картридж/заправить",
+        "tools": ["перчатки", "салфетки"],
+        "difficulty": 2,
+        "estimated_time": "25-40 мин"
+      },
+      {
+        "device_type": "printer",
+        "brand": "HP",
+        "model": "LaserJet P1102",
+        "symptom": "Следы тонера на листах",
+        "cause": "Повреждение картриджа",
+        "solution": "Заменить картридж и очистить тракт",
+        "tools": ["пылесос для техники", "салфетки"],
+        "difficulty": 2,
+        "estimated_time": "20-30 мин"
+      },
+      {
+        "device_type": "printer",
+        "brand": "HP",
+        "model": "LaserJet P1102",
+        "symptom": "Не определяется по USB",
+        "cause": "Неисправный кабель или драйвер",
+        "solution": "Заменить кабель, переустановить драйвер",
+        "tools": ["ноутбук", "кабель USB"],
+        "difficulty": 1,
+        "estimated_time": "15-25 мин"
+      },
+      {
+        "device_type": "printer",
+        "brand": "HP",
+        "model": "LaserJet 1020",
+        "symptom": "Запах гари при печати",
+        "cause": "Перегрев фьюзера",
+        "solution": "Проверить/заменить узел фьюзера",
+        "tools": ["отвертка PH2"],
+        "difficulty": 3,
+        "estimated_time": "30-60 мин",
+        "tags": ["печать", "фьюзер"],
+        "popularity": 2,
+        "source": "user_report",
+        "warning": "⚠️ Отключите питание!"
+      },
+      {
+        "device_type": "printer",
+        "brand": "HP",
+        "model": "LaserJet 1020",
+        "symptom": "Скрип привода подачи",
+        "cause": "Износ редуктора",
+        "solution": "Заменить узел подачи",
+        "tools": ["отвертка", "пинцет"],
+        "difficulty": 2,
+        "estimated_time": "25-45 мин",
+        "tags": ["механика", "подача"],
+        "popularity": 1,
+        "source": "user_report",
+        "warning": ""
+      },
+      {
+        "device_type": "printer",
+        "brand": "Canon",
+        "model": "PIXMA MG2540S",
+        "symptom": "Запах гари",
+        "cause": "Перегрев блока питания",
+        "solution": "Проверить блок питания, заменить при необходимости",
+        "tools": ["мультиметр"],
+        "difficulty": 3,
+        "estimated_time": "30-60 мин",
+        "tags": ["питание", "запах"],
+        "popularity": 1,
+        "source": "user_report",
+        "warning": "⚠️ Отключите питание!"
+      },
+      {
+        "device_type": "printer",
+        "brand": "Canon",
+        "model": "PIXMA MG2540S",
+        "symptom": "Потёки чернил внутри",
+        "cause": "Разгерметизация картриджа",
+        "solution": "Заменить картридж, очистить тракт",
+        "tools": ["салфетки"],
+        "difficulty": 2,
+        "estimated_time": "20-40 мин",
+        "tags": ["чернила", "картридж"],
+        "popularity": 2,
+        "source": "user_report",
+        "warning": ""
+      },
+      {
+        "device_type": "printer",
+        "brand": "Epson",
+        "model": "L805",
+        "symptom": "Запотевание стекла сканера",
+        "cause": "Влажность и конденсат",
+        "solution": "Просушка, проверка уплотнителей",
+        "tools": ["салфетки"],
+        "difficulty": 1,
+        "estimated_time": "15-30 мин",
+        "tags": ["сканер", "конденсат"],
+        "popularity": 1,
+        "source": "user_report",
+        "warning": ""
+      },
+      {
+        "device_type": "printer",
+        "brand": "HP",
+        "model": "LaserJet P1102",
+        "symptom": "Запах гари",
+        "cause": "Перегрев фьюзера",
+        "solution": "Проверить термопару, заменить узел",
+        "tools": ["мультиметр", "отвертка"],
+        "difficulty": 3,
+        "estimated_time": "30-60 мин",
+        "tags": ["фьюзер", "перегрев"],
+        "popularity": 1,
+        "source": "user_report",
+        "warning": "⚠️ Отключите питание!"
+      }
+    ]
+  },
+  "breadmakers": {
+    "REDMOND": [
+      {
+        "title": "Не поднимается тесто",
+        "symptoms": ["dough", "rise", "yeast"],
+        "steps": [
+          "Проверить дрожжи и рецептуру",
+          "Проверить температуру программы",
+          "Осмотреть лопатку и привод",
+          "Очистить ведро от остатков"
+        ],
+        "risks": ["Неправильный режим"],
+        "time_min": 20,
+        "time_max": 50
+      },
+      {
+        "title": "Скрип при замесе",
+        "symptoms": ["noise", "knead", "bearing"],
+        "steps": [
+          "Проверить подшипник ведра",
+          "Очистить привод",
+          "Смазать допустимой смазкой",
+          "Заменить узел привода"
+        ],
+        "risks": ["Износ подшипника"],
+        "time_min": 30,
+        "time_max": 80
+      },
+      {
+        "title": "Перегрев корпуса",
+        "symptoms": ["heat", "overheat"],
+        "steps": [
+          "Проверить термодатчик",
+          "Очистить вентиляционные отверстия",
+          "Проверить нагревательный элемент",
+          "Провести тест режима"
+        ],
+        "risks": ["Повреждение ТЭНа"],
+        "time_min": 25,
+        "time_max": 70
+      }
+    ],
+    "Panasonic": [
+      {
+        "title": "Не запускается программа",
+        "symptoms": ["program", "start", "button"],
+        "steps": [
+          "Проверить панель управления",
+          "Сбросить питание",
+          "Проверить шлейф панели",
+          "Проверить плату управления"
+        ],
+        "risks": ["Сбой контроллера"],
+        "time_min": 30,
+        "time_max": 90
+      },
+      {
+        "title": "Непропечённый хлеб",
+        "symptoms": ["bake", "undercooked"],
+        "steps": [
+          "Проверить ТЭН",
+          "Проверить режим выпечки",
+          "Проверить термодатчик",
+          "Очистить камеру"
+        ],
+        "risks": ["Повреждение датчика"],
+        "time_min": 25,
+        "time_max": 70
+      },
+      {
+        "title": "Протечки вокруг ведра",
+        "symptoms": ["leak", "bucket"],
+        "steps": [
+          "Осмотреть уплотнители",
+          "Заменить прокладки",
+          "Проверить посадку ведра",
+          "Очистить и протестировать"
+        ],
+        "risks": ["Повреждение уплотнителя"],
+        "time_min": 20,
+        "time_max": 60
+      }
+    ]
+    ,
+    "models": [
+      {
+        "device_type": "breadmaker",
+        "brand": "REDMOND",
+        "model": "RBM-M1910",
+        "symptom": "Тесто не поднимается",
+        "cause": "Неверный режим или дрожжи",
+        "solution": "Проверить рецептуру и режим",
+        "tools": ["мерный стакан"],
+        "difficulty": 1,
+        "estimated_time": "15-30 мин"
+      },
+      {
+        "device_type": "breadmaker",
+        "brand": "REDMOND",
+        "model": "RBM-M1910",
+        "symptom": "Скрип при замесе",
+        "cause": "Износ подшипника ведра",
+        "solution": "Заменить узел ведра/смазать",
+        "tools": ["отвертка", "смазка"],
+        "difficulty": 2,
+        "estimated_time": "30-60 мин"
+      },
+      {
+        "device_type": "breadmaker",
+        "brand": "REDMOND",
+        "model": "RBM-M1910",
+        "symptom": "Перегрев корпуса",
+        "cause": "Сбой датчика температуры",
+        "solution": "Проверить датчик и ТЭН",
+        "tools": ["мультиметр"],
+        "difficulty": 2,
+        "estimated_time": "25-45 мин"
+      },
+      {
+        "device_type": "breadmaker",
+        "brand": "REDMOND",
+        "model": "RBM-M1910",
+        "symptom": "Край хлеба подгорает",
+        "cause": "Неравномерный нагрев",
+        "solution": "Сервисация ТЭНа/калибровка",
+        "tools": ["мультиметр"],
+        "difficulty": 2,
+        "estimated_time": "25-40 мин"
+      },
+      {
+        "device_type": "breadmaker",
+        "brand": "Panasonic",
+        "model": "SD-2501",
+        "symptom": "Программа не запускается",
+        "cause": "Сбой панели управления",
+        "solution": "Проверить шлейф и плату",
+        "tools": ["отвертка", "мультиметр"],
+        "difficulty": 3,
+        "estimated_time": "30-60 мин"
+      },
+      {
+        "device_type": "breadmaker",
+        "brand": "Panasonic",
+        "model": "SD-2501",
+        "symptom": "Непропечённый хлеб",
+        "cause": "Недостаточный нагрев",
+        "solution": "Проверить ТЭН и датчик",
+        "tools": ["мультиметр"],
+        "difficulty": 2,
+        "estimated_time": "25-45 мин"
+      },
+      {
+        "device_type": "breadmaker",
+        "brand": "Panasonic",
+        "model": "SD-2501",
+        "symptom": "Протекания у ведра",
+        "cause": "Износ уплотнителя",
+        "solution": "Заменить прокладки",
+        "tools": ["плоскогубцы", "уплотнитель"],
+        "difficulty": 2,
+        "estimated_time": "20-40 мин"
+      },
+      {
+        "device_type": "breadmaker",
+        "brand": "Panasonic",
+        "model": "SD-2501",
+        "symptom": "Лопатка заедает",
+        "cause": "Нагар и остатки теста",
+        "solution": "Очистить и смазать",
+        "tools": ["щетка", "смазка"],
+        "difficulty": 1,
+        "estimated_time": "15-30 мин"
+      },
+      {
+        "device_type": "breadmaker",
+        "brand": "REDMOND",
+        "model": "RBM-M1910",
+        "symptom": "Запах гари",
+        "cause": "Перегрев мотора",
+        "solution": "Проверить мотор, заменить при износе",
+        "tools": ["мультиметр"],
+        "difficulty": 2,
+        "estimated_time": "25-45 мин",
+        "tags": ["мотор", "перегрев"],
+        "popularity": 1,
+        "source": "user_report",
+        "warning": "⚠️ Отключите питание!"
+      },
+      {
+        "device_type": "breadmaker",
+        "brand": "REDMOND",
+        "model": "RBM-M1910",
+        "symptom": "Стук редуктора",
+        "cause": "Износ шестерён",
+        "solution": "Заменить редуктор",
+        "tools": ["отвертка"],
+        "difficulty": 2,
+        "estimated_time": "25-45 мин",
+        "tags": ["механика", "редуктор"],
+        "popularity": 1,
+        "source": "user_report",
+        "warning": ""
+      },
+      {
+        "device_type": "breadmaker",
+        "brand": "Panasonic",
+        "model": "SD-2501",
+        "symptom": "Запах гари",
+        "cause": "Перегрев нагревателя",
+        "solution": "Проверить ТЭН, заменить",
+        "tools": ["мультиметр"],
+        "difficulty": 2,
+        "estimated_time": "25-45 мин",
+        "tags": ["ТЭН", "перегрев"],
+        "popularity": 1,
+        "source": "user_report",
+        "warning": "⚠️ Отключите питание!"
+      }
+    ]
+  },
+  "multicookers": {
+    "REDMOND": [
+      {
+        "title": "Не набирает давление",
+        "symptoms": ["pressure", "valve", "seal"],
+        "steps": [
+          "Проверить клапан",
+          "Проверить уплотнитель крышки",
+          "Очистить паровой канал",
+          "Провести тест режима"
+        ],
+        "risks": ["Пар под давлением"],
+        "time_min": 25,
+        "time_max": 70
+      },
+      {
+        "title": "Не греет",
+        "symptoms": ["heat", "heater"],
+        "steps": [
+          "Проверить ТЭН",
+          "Проверить датчик температуры",
+          "Диагностировать плату питания",
+          "Проверить проводку"
+        ],
+        "risks": ["Повреждение ТЭНа"],
+        "time_min": 30,
+        "time_max": 90
+      },
+      {
+        "title": "Ошибка панели управления",
+        "symptoms": ["panel", "buttons", "error"],
+        "steps": [
+          "Проверить шлейф панели",
+          "Очистить контакты",
+          "Переустановить плату управления",
+          "Провести диагностику контроллера"
+        ],
+        "risks": ["Сбой контроллера"],
+        "time_min": 25,
+        "time_max": 80
+      }
+    ],
+    "Polaris": [
+      {
+        "title": "Подгорает пища",
+        "symptoms": ["burn", "heat"],
+        "steps": [
+          "Проверить температурный режим",
+          "Очистить чашу",
+          "Проверить датчики",
+          "Провести калибровку"
+        ],
+        "risks": ["Перегрев"],
+        "time_min": 20,
+        "time_max": 60
+      },
+      {
+        "title": "Запах пластика при нагреве",
+        "symptoms": ["smell", "plastic", "heat"],
+        "steps": [
+          "Проветрить и прогреть пустую чашу",
+          "Проверить ТЭН и крепления",
+          "Очистить паровой канал",
+          "Проверить материалы чаши"
+        ],
+        "risks": ["Пары пластика"],
+        "time_min": 20,
+        "time_max": 60
+      },
+      {
+        "title": "Не закрывается крышка",
+        "symptoms": ["lid", "lock"],
+        "steps": [
+          "Проверить механизм замка",
+          "Очистить уплотнитель",
+          "Проверить деформации",
+          "Заменить механизм"
+        ],
+        "risks": ["Неисправность замка"],
+        "time_min": 25,
+        "time_max": 70
+      }
+    ]
+    ,
+    "models": [
+      {
+        "device_type": "multicooker",
+        "brand": "REDMOND",
+        "model": "RMK-M451",
+        "symptom": "Не набирает давление",
+        "cause": "Сбой клапана или уплотнителя",
+        "solution": "Очистить/заменить клапан и уплотнитель",
+        "tools": ["щетка", "уплотнитель"],
+        "difficulty": 2,
+        "estimated_time": "25-45 мин"
+      },
+      {
+        "device_type": "multicooker",
+        "brand": "REDMOND",
+        "model": "RMK-M451",
+        "symptom": "Не греет",
+        "cause": "Неисправен ТЭН",
+        "solution": "Проверить/заменить нагреватель",
+        "tools": ["мультиметр", "отвертка"],
+        "difficulty": 3,
+        "estimated_time": "30-60 мин"
+      },
+      {
+        "device_type": "multicooker",
+        "brand": "REDMOND",
+        "model": "RMK-M451",
+        "symptom": "Ошибка панели",
+        "cause": "Сбой контроллера",
+        "solution": "Проверить шлейф/заменить плату",
+        "tools": ["мультиметр"],
+        "difficulty": 3,
+        "estimated_time": "30-70 мин"
+      },
+      {
+        "device_type": "multicooker",
+        "brand": "REDMOND",
+        "model": "RMK-M451",
+        "symptom": "Датчик крышки не срабатывает",
+        "cause": "Дефект датчика или проводки",
+        "solution": "Проверить датчик/проводку",
+        "tools": ["мультиметр"],
+        "difficulty": 2,
+        "estimated_time": "25-45 мин"
+      },
+      {
+        "device_type": "multicooker",
+        "brand": "Polaris",
+        "model": "PMC 0506D",
+        "symptom": "Подгорает пища",
+        "cause": "Неверная калибровка температуры",
+        "solution": "Калибровать или заменить датчик",
+        "tools": ["мультиметр"],
+        "difficulty": 2,
+        "estimated_time": "20-40 мин"
+      },
+      {
+        "device_type": "multicooker",
+        "brand": "Polaris",
+        "model": "PMC 0506D",
+        "symptom": "Запах пластика",
+        "cause": "Нагрев нестабильный",
+        "solution": "Проверить крепления ТЭНа/вентиляцию",
+        "tools": ["отвертка"],
+        "difficulty": 2,
+        "estimated_time": "20-40 мин"
+      },
+      {
+        "device_type": "multicooker",
+        "brand": "Polaris",
+        "model": "PMC 0506D",
+        "symptom": "Крышка не закрывается",
+        "cause": "Дефект механизма замка",
+        "solution": "Очистить/заменить механизм",
+        "tools": ["плоскогубцы"],
+        "difficulty": 2,
+        "estimated_time": "25-45 мин"
+      },
+      {
+        "device_type": "multicooker",
+        "brand": "Polaris",
+        "model": "PMC 0506D",
+        "symptom": "Дрейф датчика температуры",
+        "cause": "Старение датчика",
+        "solution": "Заменить датчик температуры",
+        "tools": ["мультиметр"],
+        "difficulty": 2,
+        "estimated_time": "25-40 мин"
+      },
+      {
+        "device_type": "multicooker",
+        "brand": "Moulinex",
+        "model": "CE500",
+        "symptom": "Клапан заблокирован",
+        "cause": "Загрязнение",
+        "solution": "Очистить клапан и канал",
+        "tools": ["щетка"],
+        "difficulty": 2,
+        "estimated_time": "20-40 мин"
+      },
+      {
+        "device_type": "multicooker",
+        "brand": "Moulinex",
+        "model": "CE500",
+        "symptom": "Протечки",
+        "cause": "Износ уплотнителя",
+        "solution": "Заменить уплотнитель",
+        "tools": ["уплотнитель"],
+        "difficulty": 2,
+        "estimated_time": "20-40 мин"
+      },
+      {
+        "device_type": "multicooker",
+        "brand": "Moulinex",
+        "model": "CE500",
+        "symptom": "Код ошибки",
+        "cause": "Сбой контроллера",
+        "solution": "Проверить плату управления",
+        "tools": ["мультиметр"],
+        "difficulty": 3,
+        "estimated_time": "30-70 мин"
+      },
+      {
+        "device_type": "multicooker",
+        "brand": "Moulinex",
+        "model": "CE500",
+        "symptom": "Неравномерный нагрев",
+        "cause": "Дефект ТЭНа",
+        "solution": "Заменить нагреватель",
+        "tools": ["отвертка", "мультиметр"],
+        "difficulty": 3,
+        "estimated_time": "30-60 мин"
+      },
+      {
+        "device_type": "multicooker",
+        "brand": "REDMOND",
+        "model": "RMK-M451",
+        "symptom": "Запах гари",
+        "cause": "Перегрев ТЭНа",
+        "solution": "Проверить крепления и датчик",
+        "tools": ["отвертка", "мультиметр"],
+        "difficulty": 2,
+        "estimated_time": "25-45 мин",
+        "tags": ["ТЭН", "перегрев"],
+        "popularity": 1,
+        "source": "user_report",
+        "warning": "⚠️ Отключите питание!"
+      },
+      {
+        "device_type": "multicooker",
+        "brand": "Polaris",
+        "model": "PMC 0506D",
+        "symptom": "Запотевание стекла крышки",
+        "cause": "Конденсат на крышке",
+        "solution": "Просушка, проверить уплотнитель",
+        "tools": ["салфетки"],
+        "difficulty": 1,
+        "estimated_time": "15-30 мин",
+        "tags": ["конденсат", "крышка"],
+        "popularity": 1,
+        "source": "user_report",
+        "warning": ""
+      },
+      {
+        "device_type": "multicooker",
+        "brand": "Moulinex",
+        "model": "CE500",
+        "symptom": "Треск при нагреве",
+        "cause": "Деформация чаши",
+        "solution": "Заменить чашу",
+        "tools": ["перчатки"],
+        "difficulty": 1,
+        "estimated_time": "15-25 мин",
+        "tags": ["чаша", "звук"],
+        "popularity": 1,
+        "source": "user_report",
+        "warning": ""
+      }
+    ]
+  }
+}
