@@ -1,7 +1,7 @@
-(()=>{
-  // 1. Service Worker для PWA (работа офлайн + установка)
+(() => {
+  // 1. Service Worker для PWA
   if ('serviceWorker' in navigator) { 
-    try{ navigator.serviceWorker.register('/sw.js') }catch(e){console.log('SW fail',e)} 
+    try{ navigator.serviceWorker.register('/static/sw.js') }catch(e){console.log('SW fail',e)} 
   }
 
   // 2. Логика вкладок (Табов)
@@ -12,7 +12,7 @@
     tabs.forEach(t=>t.classList.toggle('active', t.dataset.view===id)); 
   }
   tabs.forEach(t=> t.addEventListener('click', ()=> show(t.dataset.view)))
-  show('home') // По умолчанию открываем главную
+  show('home')
 
   // 3. Переменные и элементы
   let lastDevice = ''
@@ -29,10 +29,10 @@
   const installBtn = document.getElementById('installBtn')
   const deviceFallback = document.getElementById('deviceFallback')
   
-  // Словарь для перевода названий приборов
+  // Словарь
   const RU = {printer:'Принтер', smartphone:'Смартфон', laptop:'Ноутбук', microwave:'Микроволновка', breadmaker:'Хлебопечка', multicooker:'Мультиварка'}
 
-  // 4. Функция сжатия картинки (чтобы не было ошибки 502)
+  // 4. Сжатие картинки
   async function resizeImage(file){
     return new Promise((resolve,reject)=>{
       const img = new Image()
@@ -52,26 +52,24 @@
     })
   }
 
-  // 5. Функция отрисовки чек-листа
+  // 5. Отрисовка чек-листа
   function renderChecklist(lines, targetElement = aiChecklist){
     const items = lines && lines.length ? lines : []
-    // Убираем HTML-теги, если они уже есть, чтобы не дублировать
     const html = '<ul class="checklist">'+ items.map(s=>{
-      let text = s.replace(/^[-\*•]\s*/, '').trim() // Убираем маркеры списка
+      let text = s.replace(/^[-\*•]\s*/, '').trim()
       return `<li><label><input type="checkbox"> <span>${text}</span></label></li>`
     }).join('') + '</ul>'
     targetElement.innerHTML = html
     resultBox.style.display = 'block'
   }
 
-  // 6. Отправка фото на классификацию (YOLO)
+  // 6. Классификация (YOLO)
   async function classify(file){
     try{ file = await resizeImage(file) }catch(e){console.error(e)}
     
     const fd = new FormData()
     fd.append('file', file)
     
-    // Показываем спиннер загрузки
     const loader = document.createElement('div'); loader.className='loader'; loader.innerHTML='<div class="spinner"></div>'; document.body.appendChild(loader)
     
     try{
@@ -82,7 +80,6 @@
       const url = URL.createObjectURL(file)
       previewImg.src = url
       
-      // Сохраняем тип устройства
       lastDevice = j.fault || ''
       window.__lastDeviceType = lastDevice
       
@@ -94,12 +91,10 @@
         detectedText.style.display='inline-block'
       }
       
-      // Показываем поле ввода проблемы
       symptomBox.style.display='block'
-      aiChecklist.innerHTML = '' // Очищаем старый чек-лист
+      aiChecklist.innerHTML = ''
       
     }catch(e){ 
-      // Дружелюбный офлайн-режим: позволяем выбрать прибор вручную
       detectedText.textContent = 'Сеть недоступна. Выберите прибор вручную:'
       detectedText.style.display='inline-block'
       aiChecklist.innerHTML = ''
@@ -129,36 +124,31 @@
     }
   }
 
-  // Обработчики кнопок фото
   camera.addEventListener('change', e=>{ const f=e.target.files[0]; if(f) classify(f) })
   gallery.addEventListener('change', e=>{ const f=e.target.files[0]; if(f) classify(f) })
-  printBtn.addEventListener('click', ()=> window.print())
+  if(printBtn) printBtn.addEventListener('click', ()=> window.print())
 
-  // 7. Логика кнопки "ПОЛУЧИТЬ РЕШЕНИЕ" (DeepSeek)
+  // 7. Получить решение (DeepSeek)
   async function solve(){
     const problem = (symptomInput.value||'').trim()
     const dt = lastDevice || 'Неизвестный прибор'
     
     if(!problem) {
-      alert('Пожалуйста, опишите проблему (например: не включается)')
+      alert('Пожалуйста, опишите проблему')
       return
     }
     
-    // Показываем анимацию загрузки
     aiChecklist.innerHTML = '<div class="skeleton" style="height:48px"></div><div class="skeleton" style="height:48px"></div>'
     solveBtn.disabled = true; solveBtn.textContent = 'Думаю...'
     
     try{
-      // Формируем умный запрос
       const q = `Устройство: ${RU[dt]||dt}. Проблема: ${problem}. Составь пошаговый чек-лист ремонта.`
       const payload = {question: q, device_type: dt}
       
       const res = await fetch('/ai/chat', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload)})
       const j = await res.json()
       
-      // Разбиваем ответ на строки по переносам или пунктам
       let text = j.answer || ''
-      // Убираем лишние фразы в начале
       text = text.replace(/^.*?(?:Вот|Предлагаю|Чек-лист).*?:/i, '')
       
       const lines = text.split(/\n/).map(s=>s.trim()).filter(s => s.length > 3)
@@ -166,7 +156,7 @@
       if(printBtn) printBtn.style.display = 'inline-block'
       
     }catch(e){ 
-      // Фоллбэк: пробуем локальную базу знаний
+      // Офлайн фоллбэк
       try{
         const kbRes = await fetch('/knowledge')
         const KB = await kbRes.json()
@@ -176,30 +166,28 @@
           return kws.some(kw=> problem.toLowerCase().includes(String(kw||'').toLowerCase()))
         })
         const lines = match ? (match.steps||[]) : []
-        if(lines.length){ renderChecklist(lines) } else { aiChecklist.innerHTML = '<div style="color:red">Ошибка связи с ИИ. Попробуйте позже.</div>' }
-      }catch(_){ aiChecklist.innerHTML = '<div style="color:red">Ошибка связи с ИИ. Попробуйте позже.</div>' }
+        if(lines.length){ renderChecklist(lines) } else { aiChecklist.innerHTML = '<div style="color:red">Ошибка ИИ. Проверьте интернет.</div>' }
+      }catch(_){ aiChecklist.innerHTML = '<div style="color:red">Ошибка ИИ. Проверьте интернет.</div>' }
     } finally {
       solveBtn.disabled = false; solveBtn.textContent = 'Получить решение'
     }
   }
   solveBtn.addEventListener('click', solve)
 
-  // 8. Установка PWA (Кнопка "Установить")
+  // 8. PWA Install
   let deferredPrompt = null
   window.addEventListener('beforeinstallprompt', (e)=>{
-    e.preventDefault(); 
-    deferredPrompt = e; 
+    e.preventDefault(); deferredPrompt = e; 
     if(installBtn) installBtn.style.display = 'inline-block'
   })
   if(installBtn) installBtn.addEventListener('click', async ()=>{
     if(!deferredPrompt) return
     deferredPrompt.prompt()
     try{ await deferredPrompt.userChoice }catch{}
-    installBtn.style.display = 'none'
-    deferredPrompt = null
+    installBtn.style.display = 'none'; deferredPrompt = null
   })
 
-  // 9. ЧАТ (DeepSeek)
+  // 9. ЧАТ
   const chatInput = document.getElementById('chatInput')
   const chatOut = document.getElementById('chatOut')
   const sendBtn = document.getElementById('sendBtn')
@@ -209,11 +197,9 @@
     const q = (chatInput.value||'').trim()
     if(!q) return
     
-    // Добавляем сообщение пользователя
     chatOut.insertAdjacentHTML('beforeend', `<div class="msg-user">${q}</div>`)
     chatInput.value = ''
     
-    // Спиннер
     const loader = document.createElement('div'); loader.className='msg-ai skeleton'; loader.textContent='...'; 
     chatOut.appendChild(loader)
     chatOut.scrollTop = chatOut.scrollHeight
@@ -224,39 +210,75 @@
       const j = await res.json()
       
       chatOut.removeChild(loader)
-      // Превращаем ответ в красивый HTML
       const answerHtml = (j.answer||'').replace(/\n/g, '<br>')
       chatOut.insertAdjacentHTML('beforeend', `<div class="msg-ai">${answerHtml}</div>`)
       chatOut.scrollTop = chatOut.scrollHeight
       
-    }catch(e){ 
-      loader.textContent = 'Ошибка' 
-    }
+    }catch(e){ loader.textContent = 'Ошибка связи' }
   }
   sendBtn.addEventListener('click', sendChat)
 
-  // Голосовой ввод (Web Speech API)
-  let rec = null; let recOn=false
-  function initRec(){ 
-    const R = window.SpeechRecognition || window.webkitSpeechRecognition; 
-    if(!R) return null; 
-    const r=new R(); r.lang='ru-RU'; 
-    r.onresult=e=>{ 
-        const t=e.results[0]&&e.results[0][0]&&e.results[0][0].transcript||''; 
-        chatInput.value=t; 
-        sendChat() // Сразу отправляем
-    }; 
-    r.onend=()=>{ recOn=false; micBtn.textContent='🎙️ Голос' }; 
-    return r 
-  }
-  micBtn.addEventListener('click', ()=>{ 
-    if(!rec) rec=initRec(); 
-    if(!rec){ alert('Ваш браузер не поддерживает голос'); return } 
-    if(!recOn){ recOn=true; micBtn.textContent='⏹️ Слушаю...'; rec.start() } 
-    else { recOn=false; micBtn.textContent='🎙️ Голос'; rec.stop() } 
-  })
+  // ===============================================
+  // 10. ГОЛОСОВОЙ ВВОД (ИСПРАВЛЕННАЯ ВЕРСИЯ)
+  // ===============================================
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
-  // 10. БАЗА ЗНАНИЙ (Офлайн)
+  if (SpeechRecognition && micBtn) {
+      const recognition = new SpeechRecognition();
+      recognition.lang = 'ru-RU';     // Язык - Русский
+      recognition.interimResults = false; 
+
+      micBtn.addEventListener('click', () => {
+          // Если уже слушаем - можно остановить (опционально) или просто игнорировать
+          if (micBtn.classList.contains('recording')) {
+             recognition.stop();
+             return;
+          }
+          
+          try {
+              recognition.start();
+              micBtn.classList.add('recording'); // Для CSS стилей
+              micBtn.textContent = "👂 Слушаю..."; 
+              micBtn.style.backgroundColor = "#d32f2f"; // Красный цвет
+              micBtn.style.color = "white";
+          } catch (e) {
+              console.error("Ошибка запуска микрофона:", e);
+          }
+      });
+
+      recognition.addEventListener('result', (event) => {
+          const text = event.results[0][0].transcript;
+          chatInput.value = text; // Вставляем текст
+          
+          // Возвращаем кнопку в исходное состояние
+          resetMicBtn();
+      });
+
+      recognition.addEventListener('end', () => {
+          resetMicBtn();
+      });
+
+      recognition.addEventListener('error', (event) => {
+          console.log("Ошибка микрофона: " + event.error);
+          resetMicBtn();
+          if (event.error === 'not-allowed') {
+              alert("Пожалуйста, разрешите доступ к микрофону в настройках.");
+          }
+      });
+
+      function resetMicBtn() {
+          micBtn.classList.remove('recording');
+          micBtn.textContent = "🎙️";
+          micBtn.style.backgroundColor = ""; 
+          micBtn.style.color = "";
+      }
+
+  } else {
+      console.log("Ваш браузер не поддерживает голосовой ввод");
+      if(micBtn) micBtn.style.display = "none";
+  }
+
+  // 11. БАЗА ЗНАНИЙ
   let KB = null
   const kbFilters = document.getElementById('kbFilters')
   const kbList = document.getElementById('kbList')
@@ -271,18 +293,11 @@
     for(const d of devices){
       const deviceName = RU[d] || KB[d].name || d
       const faults = (KB[d]&&KB[d].common_faults)||[]
-      // Если faults это объект, превращаем в массив
       const faultsArr = Array.isArray(faults) ? faults : Object.entries(faults).map(([k,v])=>({title:k, ...v}))
-      
-      for(const f of faultsArr){ 
-        items.push({device:deviceName, fault:f}) 
-      }
+      for(const f of faultsArr){ items.push({device:deviceName, fault:f}) }
     }
     
-    if(items.length === 0) {
-        kbList.innerHTML = '<div style="padding:20px; color:#666">Ничего не найдено</div>'
-        return
-    }
+    if(items.length === 0) { kbList.innerHTML = '<div style="padding:20px; color:#666">Ничего не найдено</div>'; return }
 
     for(const it of items){
       const title = it.fault.title || 'Неисправность'
@@ -296,14 +311,8 @@
       if(steps.length) stepsHtml = '<ul>'+steps.map(s=>`<li>${s}</li>`).join('')+'</ul>'
       
       el.innerHTML = `
-        <div class="kb-header">
-            <span class="kb-device-tag">${it.device}</span>
-            <div class="kb-title">${title}</div>
-        </div>
-        <div class="kb-body" style="display:none">
-            <div class="kb-solution">${solution}</div>
-            ${stepsHtml}
-        </div>
+        <div class="kb-header"><span class="kb-device-tag">${it.device}</span><div class="kb-title">${title}</div></div>
+        <div class="kb-body" style="display:none"><div class="kb-solution">${solution}</div>${stepsHtml}</div>
         <div class="kb-actions"><button class="btn-fix">Как починить?</button></div>`
         
       const btn = el.querySelector('.btn-fix')
@@ -312,7 +321,6 @@
           const isOpen = body.style.display !== 'none'
           body.style.display = isOpen ? 'none' : 'block'
           btn.textContent = isOpen ? 'Как починить?' : 'Свернуть'
-          el.classList.toggle('open', !isOpen)
       })
       kbList.appendChild(el)
     }
@@ -322,35 +330,23 @@
     kbFilters.innerHTML = ''
     const btnAll = document.createElement('button'); btnAll.className='chip active'; btnAll.textContent='Все'; 
     btnAll.addEventListener('click', (e)=>{
-        document.querySelectorAll('.kb-filters .chip').forEach(c=>c.classList.remove('active'))
-        e.target.classList.add('active')
-        renderKbList('all')
+        document.querySelectorAll('.kb-filters .chip').forEach(c=>c.classList.remove('active')); e.target.classList.add('active'); renderKbList('all')
     }); 
     kbFilters.appendChild(btnAll)
     
     for(const k of ['multicooker','smartphone','laptop','printer','microwave','breadmaker']){
       const b = document.createElement('button'); b.className='chip'; b.textContent=RU[k]; 
       b.addEventListener('click', (e)=>{
-          document.querySelectorAll('.kb-filters .chip').forEach(c=>c.classList.remove('active'))
-          e.target.classList.add('active')
-          renderKbList(k)
+          document.querySelectorAll('.kb-filters .chip').forEach(c=>c.classList.remove('active')); e.target.classList.add('active'); renderKbList(k)
       }); 
       kbFilters.appendChild(b)
     }
   }
 
   async function initKB(){ 
-      try{ 
-          const res=await fetch('/knowledge'); 
-          KB=await res.json(); 
-          renderKbFilters(); 
-          renderKbList('all') 
-      }catch(e){ 
-          kbList.textContent='Загрузка базы...' 
-      } 
+      try{ const res=await fetch('/knowledge'); KB=await res.json(); renderKbFilters(); renderKbList('all') }catch(e){} 
   }
-  
-  // Запускаем загрузку базы
+
   initKB()
 
 })();

@@ -3,22 +3,23 @@ import json
 from openai import OpenAI
 
 # ==========================================
-# НАСТРОЙКИ DEEPSEEK (Жесткая привязка)
+# НАСТРОЙКИ (Берем из переменных Cloud Run)
 # ==========================================
-API_KEY = "sk-fa49380289024753a4596a2c25dae955"  # Ваш ключ
-BASE_URL = "https://api.deepseek.com"          # Адрес DeepSeek
-MODEL_NAME = "deepseek-chat"                   # Имя модели
+# Если ключа нет в настройках сервера, программа не упадет, а напишет None
+API_KEY = os.getenv("OPENAI_API_KEY") 
+BASE_URL = os.getenv("OPENAI_BASE_URL", "https://api.deepseek.com")
+MODEL_NAME = "deepseek-chat"
 
 # Инициализация клиента
-try:
-    client = OpenAI(api_key=API_KEY, base_url=BASE_URL)
-except Exception as e:
-    print(f"Ошибка настройки DeepSeek: {e}")
-    client = None
+client = None
+if API_KEY:
+    try:
+        client = OpenAI(api_key=API_KEY, base_url=BASE_URL)
+    except Exception as e:
+        print(f"Ошибка инициализации OpenAI: {e}")
 
-# --- ИСПРАВЛЕНИЕ: Правильный путь к файлу в облаке ---
+# --- Загрузка базы знаний ---
 try:
-    # Получаем папку, где лежит этот скрипт
     BASE_DIR = os.path.dirname(os.path.abspath(__file__))
     json_path = os.path.join(BASE_DIR, 'faults_library.json')
     
@@ -29,37 +30,30 @@ except Exception as e:
     FAULTS_DB = {}
 
 def ask_ai(user_text, device_type=None):
-    """
-    Функция общения с ИИ.
-    """
     if not client:
-        return "Ошибка: Не настроен ключ API DeepSeek."
+        return "Ошибка: API ключ не найден. Проверьте настройки в Google Cloud (Variables)."
 
     try:
         # --- ШАГ 1: ЛОКАЛЬНАЯ БАЗА ---
         if device_type and device_type in FAULTS_DB:
-            # Если вопрос короткий и не просят чек-лист - ищем в базе
             if "чек-лист" not in user_text.lower() and len(user_text) < 50:
                 device_data = FAULTS_DB[device_type]
                 for fault in device_data.get("common_faults", []):
-                    # Проверка: если faults это список словарей
                     if isinstance(fault, dict):
                         keywords = fault.get("symptom_keywords", [])
                         if any(word in user_text.lower() for word in keywords):
                             return f"<b>Быстрый ответ:</b><br>{fault.get('solution')}"
 
-        # --- ШАГ 2: ЗАПРОС К DEEPSEEK ---
+        # --- ШАГ 2: ЗАПРОС К ИИ ---
         system_msg = (
             "Ты — умный помощник по ремонту техники 'Робот-техник'. "
             "Твоя цель — помочь пользователю починить прибор. "
-            "Отвечай на русском языке. "
-            "Используй HTML-теги для красоты: <b>жирный текст</b>, <br> новая строка. "
-            "Если тебя просят решение проблемы, дай пошаговый чек-лист (список)."
+            "Отвечай на русском языке. Давай конкретные советы."
         )
 
         user_content = user_text
         if device_type:
-            user_content = f"Устройство: {device_type}. Симптомы: {user_text}. Напиши подробный чек-лист диагностики и ремонта."
+            user_content = f"Устройство: {device_type}. Симптомы: {user_text}. Дай инструкцию по ремонту."
 
         response = client.chat.completions.create(
             model=MODEL_NAME,
@@ -70,13 +64,8 @@ def ask_ai(user_text, device_type=None):
             temperature=0.7,
             max_tokens=1500
         )
-
         return response.choices[0].message.content
 
     except Exception as e:
-        print(f"Ошибка DeepSeek: {e}")
-        return f"Произошла ошибка связи с ИИ. Попробуйте позже. (Детали: {e})"
-
-# Заглушки
-def search_similar(img): return None
-def _detect_device(text): return None
+        print(f"Ошибка запроса к ИИ: {e}")
+        return "Произошла ошибка связи с мозгом робота. Попробуйте позже."
