@@ -32,7 +32,7 @@ COPY static/ /app/static/
 # Если у вас файл лежит в папке models локально, раскомментируйте первую строку:
 # COPY models/best.pt /app/best.pt
 # Если файл лежит в корне проекта локально, используйте эту строку:
-COPY best.pt /app/best.pt
+COPY models/best.pt /app/best.pt
 
 # --- 4. Запуск ---
 ENV PORT=8080
