@@ -9,5 +9,6 @@ COPY . .
 # Тут устанавливается ultralytics, чтобы читать твой best.pt
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Запуск твоего приложения
-CMD ["gunicorn", "--bind", "0.0.0.0:8080", "main:app"]
+# Было: CMD ["uvicorn", "cloud_api.ai_main:app", ...]
+# СТАЛО (Это надежнее для путей):
+CMD ["python", "-m", "uvicorn", "cloud_api.ai_main:app", "--host", "0.0.0.0", "--port", "8080"]
