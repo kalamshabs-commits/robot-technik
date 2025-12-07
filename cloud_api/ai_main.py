@@ -1,7 +1,7 @@
 import importlib, sys, os
 sys.path.insert(0, os.path.dirname(__file__))
 
-# Пытаемся подгрузить старые модули
+# Пытаемся подгрузить старые модули (чтобы ничего не сломалось при запуске)
 for m in ("diagnostic_engine", "image_ai", "recall_parser"):
     try:
         importlib.import_module(m)
@@ -18,7 +18,8 @@ import requests
 import io  
 from PIL import Image
 from .security import apply_security
-from ai_helper import ask_ai as _ask_ai # Импорт функции общения с ИИ
+# Импортируем функцию ИИ и БАЗУ ДАННЫХ
+from ai_helper import ask_ai as _ask_ai, FAULTS_DB
 
 app = FastAPI()
 apply_security(app)
@@ -27,7 +28,7 @@ apply_security(app)
 def health():
     return {"status": "ok"}
 
-# Подключаем статику
+# Подключаем статику (сайт, картинки, стили)
 app.mount("/", StaticFiles(directory=os.path.join(os.path.dirname(__file__), "..", "static"), html=True), name="static")
 
 # --- МОДЕЛЬ (YOLO) ---
@@ -74,7 +75,7 @@ def _get_yolo():
         _yolo_model = YOLO("yolov8n.pt") # Аварийный вариант
     return _yolo_model
 
-# --- ДИАГНОСТИКА ---
+# --- ДИАГНОСТИКА (ФОТО) ---
 @app.post("/ai/classify")
 async def classify(file: UploadFile = File(...)):
     await _ensure_model()
@@ -86,17 +87,21 @@ async def classify(file: UploadFile = File(...)):
     except Exception:
         return {"error": "Файл не картинка"}
     
-    # Распознаем
+    # Распознаем (conf=0.25 - порог чувствительности)
     results = model.predict(source=img, conf=0.25, verbose=False)
     
     found_name = None
     max_conf = 0.0
+    found_objects = []
     
     # Ищем самый четкий объект
     for box in results[0].boxes:
         conf = float(box.conf[0])
         cls_id = int(box.cls[0])
         name = model.names[cls_id]
+        
+        found_objects.append({"class": name, "confidence": conf})
+        
         if conf > max_conf:
             max_conf = conf
             found_name = name
@@ -104,9 +109,9 @@ async def classify(file: UploadFile = File(...)):
     checklist = []
     
     if found_name:
-        # ОБРАЩЕНИЕ К ИИ (DEEPSEEK)
+        # ОБРАЩЕНИЕ К ИИ (DEEPSEEK) ЗА ЧЕК-ЛИСТОМ
         try:
-            prompt = f"Я сфотографировал прибор: {found_name}. Напиши краткий чек-лист (3 пункта) для диагностики неисправностей. Только пункты."
+            prompt = f"Я сфотографировал прибор: {found_name}. Напиши краткий чек-лист (3-4 пункта) для диагностики неисправностей. Только пункты."
             ai_text = _ask_ai(prompt, device_type=found_name)
             # Чистим текст в список
             checklist = [line.strip("- *") for line in ai_text.split('\n') if len(line) > 5]
@@ -120,13 +125,13 @@ async def classify(file: UploadFile = File(...)):
         "summary": f"Результат: {found_name}",
         "diagnosisChecklist": checklist,
         "repairChecklist": [],
-        "suspectNodes": [],
+        "suspectNodes": found_objects,
         "timeEstimateMinutes": {"min": 10, "max": 20},
         "risks": [],
         "classes": []
     }
 
-# --- ЧАТ ---
+# --- УМНЫЙ ЧАТ ---
 @app.post("/ai/ask")
 async def ask(request: Request):
     try:
@@ -136,15 +141,20 @@ async def ask(request: Request):
         data = dict(form)
         
     question = data.get("question", "")
-    # ВАЖНО: Мы больше не требуем device_type жестко
     
     if not question:
-        return {"answer": "Спроси меня о чем-нибудь!"}
+        return {"answer": "Я слушаю вас!"}
 
-    # Сразу идем к ИИ
+    # Сразу идем к ИИ (без глупых проверок типа устройства)
     answer = _ask_ai(question)
     return {"answer": answer}
 
+# --- БАЗА ЗНАНИЙ (ЧТОБЫ РАБОТАЛА НА ТЕЛЕФОНЕ) ---
+@app.get("/api/knowledge_base")
+def get_kb():
+    # Отправляем содержимое файла faults_library.json на фронтенд
+    return JSONResponse(content=FAULTS_DB)
+
 @app.get("/", include_in_schema=False)
 def read_index():
-    return FileResponse("static/index.html") 
+    return FileResponse("static/index.html")

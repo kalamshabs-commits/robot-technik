@@ -3,10 +3,10 @@ import json
 from openai import OpenAI
 
 # ==========================================
-# НАСТРОЙКИ
+# ЧИСТЫЙ КОД ПОМОЩНИКА (ai_helper.py)
 # ==========================================
-# ВНИМАНИЕ: Код теперь ищет переменную DEEPSEEK_API_KEY
-# Убедись, что в Cloud Run переменная называется ТОЧНО ТАК ЖЕ
+
+# 1. Настройка ключа (Ищем DEEPSEEK_API_KEY, так как ты так назвала в Cloud Run)
 API_KEY = os.getenv("DEEPSEEK_API_KEY") 
 BASE_URL = os.getenv("OPENAI_BASE_URL", "https://api.deepseek.com")
 MODEL_NAME = "deepseek-chat"
@@ -17,24 +17,37 @@ if API_KEY:
         client = OpenAI(api_key=API_KEY, base_url=BASE_URL)
     except Exception as e:
         print(f"Ошибка инициализации OpenAI: {e}")
+else:
+    print("ВНИМАНИЕ: Ключ DEEPSEEK_API_KEY не найден. ИИ работать не будет.")
 
-# --- Загрузка базы знаний ---
+# 2. Загрузка базы знаний (faults_library.json)
+FAULTS_DB = {}
 try:
-    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-    json_path = os.path.join(BASE_DIR, 'faults_library.json')
-    with open(json_path, 'r', encoding='utf-8') as f:
-        FAULTS_DB = json.load(f)
-except Exception:
-    FAULTS_DB = {}
+    # Ищем файл рядом с этим скриптом
+    cur_dir = os.path.dirname(os.path.abspath(__file__))
+    # Проверяем в текущей папке и на папку выше (на всякий случай)
+    paths = [
+        os.path.join(cur_dir, 'faults_library.json'),
+        os.path.join(cur_dir, '..', 'faults_library.json')
+    ]
+    for p in paths:
+        if os.path.exists(p):
+            with open(p, 'r', encoding='utf-8') as f:
+                FAULTS_DB = json.load(f)
+            break
+except Exception as e:
+    print(f"Ошибка загрузки базы знаний: {e}")
 
+# 3. Главная функция общения
 def ask_ai(user_text, device_type=None):
+    # Если ключа нет - сразу говорим об этом
     if not client:
-        return "Ошибка: Не найден API ключ. Проверьте переменную DEEPSEEK_API_KEY в Cloud Run."
+        return "Ошибка: Не найден API ключ (DEEPSEEK_API_KEY). Проверьте настройки сервера."
 
     try:
-        # --- ШАГ 1: БЫСТРЫЙ ОТВЕТ ИЗ БАЗЫ ---
+        # ШАГ А: Проверяем локальную базу (если вопрос короткий)
         if device_type and device_type in FAULTS_DB:
-            if len(user_text) < 50:
+            if len(user_text) < 50: # Если вопрос короткий, ищем в справочнике
                 device_data = FAULTS_DB[device_type]
                 for fault in device_data.get("common_faults", []):
                     if isinstance(fault, dict):
@@ -42,17 +55,17 @@ def ask_ai(user_text, device_type=None):
                         if any(word in user_text.lower() for word in keywords):
                             return f"<b>Справочник:</b> {fault.get('solution')}"
 
-        # --- ШАГ 2: ОБЩЕНИЕ С ИИ ---
+        # ШАГ Б: Если в базе нет, идем к DeepSeek
         system_msg = (
-            "Ты — 'Робот-техник', дружелюбный и умный ИИ-помощник. "
-            "Твоя специализация — ремонт техники. "
-            "Отвечай вежливо, кратко и по делу. "
-            "Если вопрос касается ремонта, давай четкую инструкцию."
+            "Ты — 'Робот-техник', профессиональный помощник по ремонту. "
+            "Твоя цель — помочь починить прибор. "
+            "Отвечай вежливо, давай пошаговые инструкции. "
+            "Если тебя спросили просто 'Привет' или отвлеченно — поддержи беседу."
         )
 
         user_content = user_text
         if device_type:
-            user_content = f"У меня устройство: {device_type}. Вопрос/Проблема: {user_text}. Помоги мне."
+            user_content = f"Устройство: {device_type}. Проблема/Вопрос: {user_text}"
 
         response = client.chat.completions.create(
             model=MODEL_NAME,
@@ -66,5 +79,9 @@ def ask_ai(user_text, device_type=None):
         return response.choices[0].message.content
 
     except Exception as e:
-        print(f"Ошибка AI: {e}")
-        return "Мой мозг сейчас перегружен (ошибка связи). Спросите позже."
+        print(f"Ошибка при запросе к ИИ: {e}")
+        return "Извините, сейчас я не могу связаться с сервером (DeepSeek перегружен). Попробуйте позже."
+
+# Этот блок нужен только для проверки на компьютере, на сервере он игнорируется
+if __name__ == "__main__":
+    print(ask_ai("Привет!"))
