@@ -3,14 +3,14 @@ import json
 from openai import OpenAI
 
 # ==========================================
-# НАСТРОЙКИ (Берем из переменных Cloud Run)
+# НАСТРОЙКИ
 # ==========================================
-# Если ключа нет в настройках сервера, программа не упадет, а напишет None
+# ВНИМАНИЕ: Код теперь ищет переменную DEEPSEEK_API_KEY
+# Убедись, что в Cloud Run переменная называется ТОЧНО ТАК ЖЕ
 API_KEY = os.getenv("DEEPSEEK_API_KEY") 
 BASE_URL = os.getenv("OPENAI_BASE_URL", "https://api.deepseek.com")
 MODEL_NAME = "deepseek-chat"
 
-# Инициализация клиента
 client = None
 if API_KEY:
     try:
@@ -22,38 +22,37 @@ if API_KEY:
 try:
     BASE_DIR = os.path.dirname(os.path.abspath(__file__))
     json_path = os.path.join(BASE_DIR, 'faults_library.json')
-    
     with open(json_path, 'r', encoding='utf-8') as f:
         FAULTS_DB = json.load(f)
-except Exception as e:
-    print(f"Ошибка загрузки базы знаний: {e}")
+except Exception:
     FAULTS_DB = {}
 
 def ask_ai(user_text, device_type=None):
     if not client:
-        return "Ошибка: API ключ не найден. Проверьте настройки в Google Cloud (Variables)."
+        return "Ошибка: Не найден API ключ. Проверьте переменную DEEPSEEK_API_KEY в Cloud Run."
 
     try:
-        # --- ШАГ 1: ЛОКАЛЬНАЯ БАЗА ---
+        # --- ШАГ 1: БЫСТРЫЙ ОТВЕТ ИЗ БАЗЫ ---
         if device_type and device_type in FAULTS_DB:
-            if "чек-лист" not in user_text.lower() and len(user_text) < 50:
+            if len(user_text) < 50:
                 device_data = FAULTS_DB[device_type]
                 for fault in device_data.get("common_faults", []):
                     if isinstance(fault, dict):
                         keywords = fault.get("symptom_keywords", [])
                         if any(word in user_text.lower() for word in keywords):
-                            return f"<b>Быстрый ответ:</b><br>{fault.get('solution')}"
+                            return f"<b>Справочник:</b> {fault.get('solution')}"
 
-        # --- ШАГ 2: ЗАПРОС К ИИ ---
+        # --- ШАГ 2: ОБЩЕНИЕ С ИИ ---
         system_msg = (
-            "Ты — умный помощник по ремонту техники 'Робот-техник'. "
-            "Твоя цель — помочь пользователю починить прибор. "
-            "Отвечай на русском языке. Давай конкретные советы."
+            "Ты — 'Робот-техник', дружелюбный и умный ИИ-помощник. "
+            "Твоя специализация — ремонт техники. "
+            "Отвечай вежливо, кратко и по делу. "
+            "Если вопрос касается ремонта, давай четкую инструкцию."
         )
 
         user_content = user_text
         if device_type:
-            user_content = f"Устройство: {device_type}. Симптомы: {user_text}. Дай инструкцию по ремонту."
+            user_content = f"У меня устройство: {device_type}. Вопрос/Проблема: {user_text}. Помоги мне."
 
         response = client.chat.completions.create(
             model=MODEL_NAME,
@@ -62,10 +61,10 @@ def ask_ai(user_text, device_type=None):
                 {"role": "user", "content": user_content}
             ],
             temperature=0.7,
-            max_tokens=1500
+            max_tokens=2000
         )
         return response.choices[0].message.content
 
     except Exception as e:
-        print(f"Ошибка запроса к ИИ: {e}")
-        return "Произошла ошибка связи с мозгом робота. Попробуйте позже."
+        print(f"Ошибка AI: {e}")
+        return "Мой мозг сейчас перегружен (ошибка связи). Спросите позже."
