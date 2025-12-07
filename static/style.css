@@ -1,7 +1,7 @@
 :root{--blue:#1976d2;--blue-dark:#1565c0;--bg:#ffffff;--text:#0f172a;--muted:#475569}
 *{box-sizing:border-box}
-html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:system-ui,Segoe UI,Roboto,Arial,sans-serif}
-main{max-width:960px;margin:0 auto;padding:24px}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:system-ui,Segoe UI,Roboto,Arial,sans-serif;height:100%;overflow-y:hidden}
+main{max-width:960px;margin:0 auto;padding:24px;height:100%;overflow-y:auto;padding-bottom:140px}
 h1{font-size:28px;margin:0 0 16px;color:var(--blue-dark)}
 .view{display:none}
 .view.active{display:block}
@@ -33,21 +33,20 @@ button:hover{background:var(--blue-dark)}
 .risk{color:#b71c1c}
 .time{color:#1b5e20}
 /* нижняя панель действий чата */
-.action-bar{display:flex;gap:8px;flex-wrap:wrap}
-.tabbar{position:fixed;left:0;right:0;bottom:0;display:flex;gap:0;border-top:1px solid #e5e7eb;background:#fff;box-shadow:0 -6px 16px rgba(0,0,0,.06)}
+.action-bar{display:flex;gap:8px;flex-wrap:wrap;margin-top:20px;justify-content:center}
+.tabbar{position:fixed;left:0;right:0;bottom:0;display:flex;gap:0;border-top:1px solid #e5e7eb;background:#fff;box-shadow:0 -6px 16px rgba(0,0,0,.06);z-index:1000}
 .tab{flex:1;padding:12px 8px;background:#fff;color:#0f172a;border:0}
 .tab.active{color:#1976d2;font-weight:600}
 .kb-filters{display:flex;gap:8px;overflow-x:auto;padding-bottom:6px}
 .kb-filters .chip{cursor:pointer;white-space:nowrap}
 .kb-list{margin-top:10px}
 .kb-card{border:1px solid #e5e7eb;border-radius:12px;padding:12px;margin:8px 0;background:#fff}
-.kb-card .kb-title{font-weight:700;color:#1565c0;margin-bottom:8px}
+.kb-card .kb-title{font-weight:700;color:var(--blue);text-transform:uppercase;margin-bottom:8px}
 .kb-card .kb-actions{display:flex;gap:8px}
 .kb-card .kb-body{display:none;margin-top:8px}
 .kb-card.open .kb-body{display:block}
 @media (max-width:600px){
-  .action-bar{position:fixed;left:0;right:0;bottom:56px;padding:10px;background:#ffffff;border-top:1px solid #e5e7eb;box-shadow:0 -4px 10px rgba(0,0,0,.06);z-index:2000}
-  main{padding-bottom:120px}
+  .action-bar{width:100%}
 }
 @media (max-width:600px){main{padding:16px}h1{font-size:22px}.btn{padding:8px 12px}}
 .progress{position:relative;height:8px;background:#e3f2fd;border-radius:999px;overflow:hidden;margin:10px 0}

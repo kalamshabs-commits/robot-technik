@@ -11,6 +11,7 @@ const RU_NAMES = {
 
 // --- STATE ---
 let currentDevice = null;
+let currentSolutionText = "";
 
 // --- DOM ELEMENTS ---
 const els = {
@@ -26,6 +27,7 @@ const els = {
     symptomBox: document.getElementById('symptomBox'),
     symptomInput: document.getElementById('symptomInput'),
     solveBtn: document.getElementById('solveBtn'),
+    printBtn: document.getElementById('printBtn'),
     aiChecklist: document.getElementById('aiChecklist'),
     deviceFallback: document.getElementById('deviceFallback'),
     
@@ -71,6 +73,7 @@ function initDiagnosis() {
     if (els.galInput) els.galInput.addEventListener('change', handleFileSelect);
     
     if (els.solveBtn) els.solveBtn.addEventListener('click', getSolution);
+    if (els.printBtn) els.printBtn.addEventListener('click', downloadChecklist);
 }
 
 async function handleFileSelect(e) {
@@ -102,15 +105,16 @@ async function handleFileSelect(e) {
         const data = await res.json();
         
         // 3. Handle Result
-        if (data.device) {
-            currentDevice = data.device;
-            const ruName = RU_NAMES[data.device] || data.device;
+        if (data.found) {
+            currentDevice = data.device_type;
+            const ruName = data.device_name_ru || currentDevice;
             els.detectedText.textContent = `Я вижу: ${ruName} (Уверенность: ${(data.confidence * 100).toFixed(0)}%)`;
             els.detectedText.style.backgroundColor = '#e8f5e9';
             els.detectedText.style.color = '#2e7d32';
             
-            // Show Symptom Input
+            // Show Symptom Input and Solve Button
             els.symptomBox.style.display = 'block';
+            els.solveBtn.style.display = 'block'; // Show button
             els.deviceFallback.style.display = 'none';
         } else {
             els.detectedText.textContent = "Не удалось распознать прибор. Выберите вручную:";
@@ -129,6 +133,7 @@ async function handleFileSelect(e) {
 function showDeviceFallback() {
     els.deviceFallback.innerHTML = '';
     els.deviceFallback.style.display = 'flex';
+    els.solveBtn.style.display = 'none'; // Hide if fallback shown initially
     
     Object.keys(RU_NAMES).forEach(key => {
         const btn = document.createElement('button');
@@ -138,6 +143,7 @@ function showDeviceFallback() {
             currentDevice = key;
             els.detectedText.textContent = `Выбрано: ${RU_NAMES[key]}`;
             els.symptomBox.style.display = 'block';
+            els.solveBtn.style.display = 'block'; // Show button
             els.deviceFallback.style.display = 'none';
         };
         els.deviceFallback.appendChild(btn);
@@ -157,19 +163,24 @@ async function getSolution() {
     
     els.solveBtn.disabled = true;
     els.solveBtn.textContent = "Думаю...";
+    els.printBtn.style.display = 'none'; // Hide print button while thinking
     
     try {
         const res = await fetch(`${API_BASE}/ai/diagnose`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                device: currentDevice,
+                device_type: currentDevice,
                 symptom: symptom
             })
         });
         
         const data = await res.json();
-        renderChecklist(data.checklist);
+        currentSolutionText = data.raw_text; // Store for download
+        renderChecklist(data.checklist, data.raw_text);
+        
+        // Show download button
+        els.printBtn.style.display = 'inline-block';
         
     } catch (err) {
         console.error(err);
@@ -180,26 +191,31 @@ async function getSolution() {
     }
 }
 
-function renderChecklist(text) {
-    if (!text) return;
+function downloadChecklist() {
+    if (!currentSolutionText) return;
     
-    // Simple Markdown parsing
-    let html = text
-        .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>') // Bold
-        .replace(/^\d+\.\s+(.*)$/gm, '<li>$1</li>') // Ordered list
-        .replace(/^-\s+(.*)$/gm, '<li>$1</li>'); // Unordered list
-        
-    if (html.includes('<li>')) {
-        // Wrap lists if they exist but aren't wrapped
-        if (!html.includes('<ul>') && !html.includes('<ol>')) {
-             html = `<ul>${html}</ul>`;
-        }
+    const blob = new Blob([currentSolutionText], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Checklist_${currentDevice}_${new Date().toISOString().slice(0,10)}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+
+function renderChecklist(checklist, rawText) {
+    if (checklist && checklist.length > 0) {
+        const listHtml = checklist.map(item => `<li>${item}</li>`).join('');
+        els.aiChecklist.innerHTML = `<div class="checklist-card"><h3>Рекомендации:</h3><ul>${listHtml}</ul></div>`;
+    } else if (rawText) {
+        // Fallback to raw text if parsing failed
+        const html = rawText.replace(/\n/g, '<br>');
+        els.aiChecklist.innerHTML = `<div class="checklist-card"><h3>Рекомендации:</h3><p>${html}</p></div>`;
     } else {
-        // Just paragraphs if no list
-        html = html.split('\n').map(l => l.trim() ? `<p>${l}</p>` : '').join('');
+        els.aiChecklist.innerHTML = `<div class="checklist-card"><h3>Рекомендации:</h3><p>Нет данных.</p></div>`;
     }
-    
-    els.aiChecklist.innerHTML = `<div class="checklist-card"><h3>Рекомендации:</h3>${html}</div>`;
     els.aiChecklist.scrollIntoView({ behavior: 'smooth' });
 }
 
@@ -239,7 +255,7 @@ async function sendChatMessage() {
     els.chatInput.value = '';
     
     try {
-        const res = await fetch(`${API_BASE}/ai/chat`, {
+        const res = await fetch(`${API_BASE}/ai/ask`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ question: text })

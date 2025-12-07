@@ -52,14 +52,14 @@
           <label for="symptomInput" style="font-size: 14px; color: #666;">Что случилось?</label>
           <input id="symptomInput" type="text" placeholder="Например: жует бумагу" style="margin-bottom: 10px;">
           
-          <div class="action-bar">
-            <button id="solveBtn" class="primary-btn">Получить решение</button>
-            <button id="printBtn" class="secondary-btn" style="display: none;">📥 Скачать</button>
-          </div>
-        </div>
-
         <div id="aiChecklist"></div>
         <div id="deviceFallback" class="kb-filters" style="display:none; margin-top:8px"></div>
+        
+        <!-- Кнопки действий (перемещены вниз) -->
+        <div class="action-bar" style="margin-top:20px;">
+             <button id="solveBtn" class="primary-btn" style="display:none">Получить решение</button>
+             <button id="printBtn" class="secondary-btn" style="display: none;">📥 Скачать чек-лист</button>
+        </div>
       </div>
 
       <!-- Кнопка установки (скрыта по умолчанию, покажется через JS) -->
