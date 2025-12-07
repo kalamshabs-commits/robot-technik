@@ -33,4 +33,4 @@ ENV PORT=8080
 
 EXPOSE 8080
 
-CMD ["gunicorn", "-w", "2", "-b", "0.0.0.0:${PORT}", "flask_app:app"]
+CMD exec gunicorn --bind :$PORT --workers 1 --threads 8 --timeout 0 flask_app:app
