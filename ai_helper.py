@@ -1,93 +1,117 @@
 import os
-import json
-from typing import List, Dict
-from diagnostic_engine import diagnose
-from openai import OpenAI
+import requests
+import logging
+from ultralytics import YOLO
+from PIL import Image
+import io
 
-ALLOWED = {"multicooker","smartphone","laptop","printer","microwave","breadmaker"}
+# Настройка логгирования
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
-def _load_faults():
+# ==========================================
+# 1. ЛОГИКА YOLO (ДИАГНОСТИКА)
+# ==========================================
+_model = None
+
+def get_yolo_model():
+    """Загружает модель один раз и держит в памяти"""
+    global _model
+    if _model:
+        return _model
+    
+    # Логика поиска файла (как в вашем main.py)
+    possible_paths = [
+        os.getenv("YOLO_WEIGHTS_PATH"), # Если задано в переменных
+        "best.pt",                      # В корне
+        "cloud_api/best.pt",            # В папке апи
+        "models/best.pt",               # В папке models
+        "/app/best.pt"                  # Абсолютный путь
+    ]
+    
+    model_path = "yolov8n.pt" # Запасной вариант
+    
+    for path in possible_paths:
+        if path and os.path.exists(path):
+            logger.info(f"🚀 Модель найдена: {path}")
+            model_path = path
+            break
+    else:
+        logger.warning("⚠️ Файл best.pt не найден! Использую стандартную модель.")
+
     try:
-        path = os.path.join(os.path.dirname(__file__), "faults_library.json")
-        with open(path, "r", encoding="utf-8") as f:
-            return json.load(f)
-    except Exception:
-        return {}
+        _model = YOLO(model_path)
+    except Exception as e:
+        logger.error(f"❌ Ошибка загрузки YOLO: {e}")
+        _model = YOLO("yolov8n.pt")
+        
+    return _model
 
-def _detect_device(text: str) -> str:
-    t = (text or '').lower()
-    if "принтер" in t or "печать" in t:
-        return "printer"
-    if "мультивар" in t or "суп" in t:
-        return "multicooker"
-    if "ноутбук" in t or "laptop" in t:
-        return "laptop"
-    if "смартфон" in t or "телефон" in t or "смарт" in t:
-        return "smartphone"
-    if "микровол" in t or "печь" in t:
-        return "microwave"
-    if "хлебопеч" in t or "хлеб" in t:
-        return "breadmaker"
-    return ""
+def analyze_image(image_bytes):
+    """Принимает байты картинки, возвращает имя класса и уверенность"""
+    try:
+        model = get_yolo_model()
+        img = Image.open(io.BytesIO(image_bytes)).convert("RGB")
+        
+        # Запуск YOLO
+        results = model.predict(source=img, conf=0.25, verbose=False)
+        
+        if results and results[0].boxes:
+            box = results[0].boxes[0]
+            cls_id = int(box.cls[0])
+            confidence = float(box.conf[0])
+            detected_name = model.names[cls_id]
+            return detected_name, confidence
+            
+        return None, 0.0
+    except Exception as e:
+        logger.error(f"Ошибка анализа фото: {e}")
+        return "error", 0.0
 
-def _deepseek_client():
-    key = os.getenv("DEEPSEEK_API_KEY")
-    if not key:
-        return None
-    return OpenAI(base_url="https://api.deepseek.com", api_key=key, timeout=30.0)
 
-def _find_fault(dt: str, title: str):
-    data = _load_faults()
-    items = (data.get(dt) or {}).get("common_faults") or []
-    for f in items:
-        if (f.get("title") or "").strip().lower() == (title or "").strip().lower():
-            return f
-    return None
+# ==========================================
+# 2. БАЗА ЗНАНИЙ (6 ПРИБОРОВ)
+# ==========================================
+FAULTS_DB = [
+    {"category": "multicooker", "title": "Мультиварка: Ошибка E1/E2/E3", "desc": "Проблема с датчиками температуры.", "sol": "1. Проверьте датчик на крышке. \n2. Убедитесь, что чаша сухая. \n3. Отключите от сети на 15 мин."},
+    {"category": "breadmaker", "title": "Хлебопечка: Не месит тесто", "desc": "Двигатель гудит, лопатка стоит.", "sol": "1. Проверьте ремень привода. \n2. Проверьте лопатку. \n3. Смажьте вал."},
+    {"category": "microwave", "title": "Микроволновка: Искрит", "desc": "Треск и вспышки.", "sol": "1. Замените слюдяную пластину. \n2. Уберите металл. \n3. Очистите от жира."},
+    {"category": "smartphone", "title": "Смартфон: Быстро разряжается", "desc": "Выключается на 30%.", "sol": "1. Замена аккумулятора. \n2. Удалите лишние приложения. \n3. Сбой контроллера."},
+    {"category": "printer", "title": "Принтер: Жует бумагу", "desc": "Лист застревает.", "sol": "1. Посторонний предмет в лотке. \n2. Протрите ролики спиртом."},
+    {"category": "laptop", "title": "Ноутбук: Греется", "desc": "Шум и горячий корпус.", "sol": "1. Чистка от пыли. \n2. Замена термопасты."}
+]
 
-def search_similar(query: str, device_type: str = "", top_k: int = 3) -> List[Dict]:
-    data = _load_faults()
-    dt = device_type or _detect_device(query)
-    if not dt or dt not in ALLOWED:
-        return []
-    items = (data.get(dt) or {}).get("common_faults") or []
-    out = []
-    q = (query or '').lower()
-    for f in items:
-        kws = f.get("symptom_keywords") or []
-        score = sum(1 for kw in kws if kw and str(kw).lower() in q)
-        if score:
-            out.append({"title": f.get("title"), "solution": f.get("solution"), "score": score})
-    out.sort(key=lambda x: x.get("score", 0), reverse=True)
-    return out[:top_k]
 
-def ask_ai(prompt: str, device_type: str = "", model_name: str = "") -> str:
-    dt = device_type or _detect_device(prompt)
-    if dt and dt not in ALLOWED:
-        return "Чиню только: multicooker, smartphone, laptop, printer, microwave, breadmaker"
-    dt2 = dt or ""
-    sims = search_similar(prompt, dt2, top_k=1)
-    if sims:
-        t = sims[0].get("title") or ""
-        fault = _find_fault(dt2, t)
-        steps = [str(x) for x in (fault or {}).get("steps", [])]
-        if steps:
-            return "\n".join(steps)
-    client = _deepseek_client()
-    if client:
-        try:
-            sys = "Ты — Робот-техник. Твоя задача — помогать чинить бытовую технику. Отвечай чеклистами. Будь краток."
-            msgs = [
-                {"role": "system", "content": sys},
-                {"role": "user", "content": prompt},
-            ]
-            out = client.chat.completions.create(model="deepseek-chat", messages=msgs, temperature=0.2, max_tokens=500)
-            return (out.choices[0].message.content or "").strip()
-        except Exception:
-            pass
-    if not dt2:
-        return "Уточните тип устройства из списка: мультиварка, смартфон, ноутбук, принтер, микроволновка, хлебопечка"
-    report = diagnose(dt2, model_name or "", [], symptom_text=prompt)
-    steps = report.get("diagnosisChecklist") or []
-    if not steps:
-        return "Нет точного совпадения по симптомам"
-    return "\n".join([str(s) for s in steps])
+# ==========================================
+# 3. ИИ ПОМОЩНИК (DeepSeek)
+# ==========================================
+def ask_ai(user_text, device_type="Неизвестное устройство"):
+    api_key = os.getenv("DEEPSEEK_API_KEY")
+    
+    if not api_key:
+        return "Ошибка: Не найден API ключ DeepSeek."
+
+    system_prompt = (
+        f"Ты мастер по ремонту. Устройство: {device_type}. "
+        "Дай краткий совет по ремонту. Используй списки."
+    )
+
+    try:
+        response = requests.post(
+            "https://api.deepseek.com/v1/chat/completions",
+            headers={"Authorization": f"Bearer {api_key}"},
+            json={
+                "model": "deepseek-chat",
+                "messages": [
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_text}
+                ]
+            },
+            timeout=20
+        )
+        response.raise_for_status()
+        return response.json()['choices'][0]['message']['content']
+    except Exception as e:
+        logger.error(f"AI Error: {e}")
+        return "ИИ сейчас недоступен."
+    

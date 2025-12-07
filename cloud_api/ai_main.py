@@ -1,160 +1,58 @@
-import importlib, sys, os
-sys.path.insert(0, os.path.dirname(__file__))
-
-# Пытаемся подгрузить старые модули (чтобы ничего не сломалось при запуске)
-for m in ("diagnostic_engine", "image_ai", "recall_parser"):
-    try:
-        importlib.import_module(m)
-    except Exception:
-        pass
-
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-
+import os
 from fastapi import FastAPI, UploadFile, File, Request
-from fastapi.responses import JSONResponse, FileResponse, HTMLResponse
+from fastapi.responses import JSONResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
-import pathlib
-import requests
-import io  
-from PIL import Image
-from .security import apply_security
-# Импортируем функцию ИИ и БАЗУ ДАННЫХ
-from ai_helper import ask_ai as _ask_ai, FAULTS_DB
+from fastapi.middleware.cors import CORSMiddleware
+
+# Импортируем ВСЮ логику из хелпера
+from cloud_api.ai_helper import FAULTS_DB, ask_ai, analyze_image
 
 app = FastAPI()
-apply_security(app)
 
-@app.get("/health")
-def health():
-    return {"status": "ok"}
+# Разрешаем запросы с фронтенда
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
-# Подключаем статику (сайт, картинки, стили)
-app.mount("/", StaticFiles(directory=os.path.join(os.path.dirname(__file__), "..", "static"), html=True), name="static")
+# --- ЭНДПОИНТЫ ---
 
-# --- МОДЕЛЬ (YOLO) ---
-_yolo_model = None
-_model_dir = os.path.join(os.path.dirname(__file__), "..", "models")
+@app.get("/")
+def index():
+    # Ищем index.html
+    paths = ["static/index.html", "cloud_api/static/index.html", "../static/index.html"]
+    for p in paths:
+        if os.path.exists(p):
+            return FileResponse(p)
+    return "Error: index.html not found"
 
-async def _ensure_model():
-    # Создаем папку если нет
-    pathlib.Path(_model_dir).mkdir(parents=True, exist_ok=True)
-    
-    # 1. Пробуем найти best.pt (Твои веса)
-    my_weights = os.path.join(_model_dir, "best.pt")
-    default_weights = os.path.join(_model_dir, "yolov8n.pt")
-    
-    final_path = default_weights # По умолчанию
-    
-    if os.path.exists(my_weights):
-        print(f"✅ Нашел твои веса: {my_weights}")
-        final_path = my_weights
-    elif not os.path.exists(default_weights):
-        print("⚠ Весов нет, качаю стандартные...")
-        try:
-            url = "https://github.com/ultralytics/assets/releases/download/v0.0.0/yolov8n.pt"
-            r = requests.get(url)
-            with open(default_weights, "wb") as f:
-                f.write(r.content)
-        except Exception as e:
-            print(f"Ошибка скачивания: {e}")
-
-    os.environ["YOLO_WEIGHTS_PATH"] = final_path
-
-def _get_yolo():
-    global _yolo_model
-    if _yolo_model:
-        return _yolo_model
-    
-    from ultralytics import YOLO
-    path = os.environ.get("YOLO_WEIGHTS_PATH", "yolov8n.pt")
-    print(f"🚀 Загружаю YOLO из: {path}")
-    try:
-        _yolo_model = YOLO(path)
-    except Exception as e:
-        print(f"Ошибка загрузки YOLO: {e}")
-        _yolo_model = YOLO("yolov8n.pt") # Аварийный вариант
-    return _yolo_model
-
-# --- ДИАГНОСТИКА (ФОТО) ---
-@app.post("/ai/classify")
-async def classify(file: UploadFile = File(...)):
-    await _ensure_model()
-    model = _get_yolo()
-    
-    data = await file.read()
-    try:
-        img = Image.open(io.BytesIO(data)).convert("RGB")
-    except Exception:
-        return {"error": "Файл не картинка"}
-    
-    # Распознаем (conf=0.25 - порог чувствительности)
-    results = model.predict(source=img, conf=0.25, verbose=False)
-    
-    found_name = None
-    max_conf = 0.0
-    found_objects = []
-    
-    # Ищем самый четкий объект
-    for box in results[0].boxes:
-        conf = float(box.conf[0])
-        cls_id = int(box.cls[0])
-        name = model.names[cls_id]
-        
-        found_objects.append({"class": name, "confidence": conf})
-        
-        if conf > max_conf:
-            max_conf = conf
-            found_name = name
-
-    checklist = []
-    
-    if found_name:
-        # ОБРАЩЕНИЕ К ИИ (DEEPSEEK) ЗА ЧЕК-ЛИСТОМ
-        try:
-            prompt = f"Я сфотографировал прибор: {found_name}. Напиши краткий чек-лист (3-4 пункта) для диагностики неисправностей. Только пункты."
-            ai_text = _ask_ai(prompt, device_type=found_name)
-            # Чистим текст в список
-            checklist = [line.strip("- *") for line in ai_text.split('\n') if len(line) > 5]
-        except Exception:
-            checklist = [f"Прибор: {found_name}. Проверьте шнур питания.", "Осмотрите корпус."]
-    else:
-        found_name = "Не распознано"
-        checklist = ["Попробуйте сделать фото четче или ближе."]
-
-    return {
-        "summary": f"Результат: {found_name}",
-        "diagnosisChecklist": checklist,
-        "repairChecklist": [],
-        "suspectNodes": found_objects,
-        "timeEstimateMinutes": {"min": 10, "max": 20},
-        "risks": [],
-        "classes": []
-    }
-
-# --- УМНЫЙ ЧАТ ---
-@app.post("/ai/ask")
-async def ask(request: Request):
-    try:
-        data = await request.json()
-    except:
-        form = await request.form()
-        data = dict(form)
-        
-    question = data.get("question", "")
-    
-    if not question:
-        return {"answer": "Я слушаю вас!"}
-
-    # Сразу идем к ИИ (без глупых проверок типа устройства)
-    answer = _ask_ai(question)
-    return {"answer": answer}
-
-# --- БАЗА ЗНАНИЙ (ЧТОБЫ РАБОТАЛА НА ТЕЛЕФОНЕ) ---
 @app.get("/api/knowledge_base")
 def get_kb():
-    # Отправляем содержимое файла faults_library.json на фронтенд
-    return JSONResponse(content=FAULTS_DB)
+    return JSONResponse(content={"items": FAULTS_DB})
 
-@app.get("/", include_in_schema=False)
-def read_index():
-    return FileResponse("static/index.html")
+@app.post("/ai/classify")
+async def classify(file: UploadFile = File(...)):
+    # 1. Читаем файл
+    image_bytes = await file.read()
+    
+    # 2. Отдаем в хелпер на обработку (логика YOLO теперь там)
+    name, conf = analyze_image(image_bytes)
+    
+    if name is None:
+        return JSONResponse({"error": "Ничего не найдено"}, status_code=400)
+        
+    return {"fault": name, "confidence": conf}
+
+@app.post("/ai/chat")
+async def chat(request: Request):
+    data = await request.json()
+    return {"answer": ask_ai(data.get("question", ""), data.get("device_type", ""))}
+
+# Подключение статики
+static_dir = "static"
+if not os.path.exists(static_dir) and os.path.exists("cloud_api/static"):
+    static_dir = "cloud_api/static"
+if os.path.exists(static_dir):
+    app.mount("/static", StaticFiles(directory=static_dir), name="static")
