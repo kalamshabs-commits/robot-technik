@@ -3,13 +3,15 @@ import json
 import io
 from PIL import Image
 from ultralytics import YOLO
-from openai import OpenAI
+import google.generativeai as genai
 from typing import List, Dict, Optional, Tuple
 
 # --- CONFIGURATION ---
-DEEPSEEK_API_KEY = os.environ.get("DEEPSEEK_API_KEY", "sk-fa49380289024753a4596a2c25dae955")
-BASE_URL = "https://api.deepseek.com"
-MODEL_NAME = "deepseek-chat"
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
+if GEMINI_API_KEY:
+    genai.configure(api_key=GEMINI_API_KEY)
+    
+MODEL_NAME = 'gemini-1.5-pro'
 
 # --- TRANSLATION DICTIONARY ---
 YOLO_CLASSES_RU = {
@@ -83,8 +85,8 @@ YOLO_CLASSES_RU = {
     "keyboard": "Клавиатура",
     "cell phone": "Смартфон",
     "microwave": "Микроволновка",
-    "oven": "Духовка",
-    "toaster": "Тостер",
+    "oven": "Духовка / Хлебопечка",
+    "toaster": "Тостер / Мультиварка",
     "sink": "Раковина",
     "refrigerator": "Холодильник",
     "book": "Книга",
@@ -94,10 +96,10 @@ YOLO_CLASSES_RU = {
     "teddy bear": "Плюшевый мишка",
     "hair drier": "Фен",
     "toothbrush": "Зубная щетка",
-    # Specific Appliances (if model detects them)
+    "printer": "Принтер",
+    # Specific Appliances (mapped to YOLO classes or custom logic)
     "multicooker": "Мультиварка",
     "breadmaker": "Хлебопечка",
-    "printer": "Принтер",
     "washer": "Стиральная машина",
     "dryer": "Сушильная машина",
     "dishwasher": "Посудомойка",
@@ -177,7 +179,8 @@ def analyze_image(image_bytes: bytes) -> Tuple[Optional[str], float]:
         
     try:
         img = Image.open(io.BytesIO(image_bytes))
-        results = MODEL(img)
+        # Lower confidence threshold to 0.20 as requested
+        results = MODEL(img, conf=0.20)
         
         # Parse results
         if not results or not results[0].boxes:
@@ -240,37 +243,27 @@ def get_local_solution(device: str, query: str) -> Optional[str]:
     return None
 
 # --- AI CLIENT ---
-def _get_ai_client():
-    try:
-        return OpenAI(api_key=DEEPSEEK_API_KEY, base_url=BASE_URL, timeout=30.0)
-    except Exception as e:
-        print(f"❌ AI Client Init Error: {e}")
-        return None
-
 def ask_ai(user_text: str, device_type: str = None, kb_info: str = None) -> str:
     """
     Main entry point for AI advice.
     Hybrid Logic:
     1. Try rule-based device detection if not provided.
-    2. DeepSeek API with KB info context.
+    2. Google Gemini API with KB info context.
+    3. Fallback to local DB if API fails.
     """
     
     # 1. Normalize device type
     if not device_type:
         device_type = _detect_device_rule_based(user_text)
     
-    # 2. Ask DeepSeek (Hybrid)
-    client = _get_ai_client()
-    if not client:
-        return "Ошибка: Не могу подключиться к мозгу ИИ (Нет клиента)."
-
+    # 2. Ask Gemini (Hybrid)
     try:
-        system_prompt = (
-            "Ты — профессиональный мастер по ремонту техники 'Робот-техник'. "
-            "Твоя задача — давать четкие, пошаговые инструкции по диагностике и ремонту. "
-            "Если вопрос не касается ремонта, поддерживай вежливую беседу. "
-            "Отвечай на русском языке. Используй форматирование (списки, жирный текст). "
-            "Если тебя просят чек-лист, давай нумерованный список. Будь краток и по делу."
+        model = genai.GenerativeModel(MODEL_NAME)
+        
+        system_role = (
+            "Ты профессиональный мастер по ремонту. Твой язык Русский. Будь краток и точен. "
+            "Давай четкие, пошаговые инструкции. "
+            "Если тебя просят чек-лист, давай нумерованный список."
         )
         
         user_content = user_text
@@ -284,25 +277,25 @@ def ask_ai(user_text: str, device_type: str = None, kb_info: str = None) -> str:
             
             user_content += (
                 "\nСоставь подробный план ремонта, используя и базу (если есть), и свои общие знания. "
-                "Если информация из базы полезна, обязательно включи её. "
                 "Ответ должен быть единым, связным текстом (чек-листом)."
             )
-
-        response = client.chat.completions.create(
-            model=MODEL_NAME,
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_content}
-            ],
-            temperature=0.3,
-            max_tokens=1500
-        )
-        return response.choices[0].message.content
+            
+        # Gemini call
+        prompt = f"{system_role}\n\n{user_content}"
+        response = model.generate_content(prompt)
+        
+        return response.text
         
     except Exception as e:
-        error_str = str(e)
-        print(f"❌ DeepSeek API Error: {error_str}")
-        if "402" in error_str or "Insufficient Balance" in error_str:
-             return "К сожалению, баланс ИИ исчерпан. Попробуйте позже."
-             
-        return f"Произошла ошибка при связи с ИИ. Попробуйте позже. (Код ошибки: {error_str})"
+        print(f"❌ Gemini API Error: {e}")
+        
+        # Fallback Logic
+        if kb_info:
+             return f"**Режим оффлайн (База знаний):**\n\n{kb_info}\n\n(Сервис ИИ временно недоступен)"
+        
+        if device_type:
+             local_res = get_local_solution(device_type, user_text)
+             if local_res:
+                 return f"**Режим оффлайн (База знаний):**\n\n{local_res}\n\n(Сервис ИИ временно недоступен)"
+        
+        return "Сервис перегружен, проверьте базовые настройки питания."

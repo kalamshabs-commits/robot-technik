@@ -74,6 +74,16 @@ function initDiagnosis() {
     
     if (els.solveBtn) els.solveBtn.addEventListener('click', getSolution);
     if (els.printBtn) els.printBtn.addEventListener('click', downloadChecklist);
+
+    // REORDER: Enforce strict order: Input -> Buttons -> Checklist
+    if (els.symptomBox && els.aiChecklist) {
+        // Find action-bar inside symptomBox
+        const actionBar = els.symptomBox.querySelector('.action-bar');
+        if (actionBar) {
+            // Move action-bar before aiChecklist
+            els.symptomBox.insertBefore(actionBar, els.aiChecklist);
+        }
+    }
 }
 
 async function handleFileSelect(e) {
