@@ -1,25 +1,26 @@
 import importlib, sys, os
 sys.path.insert(0, os.path.dirname(__file__))
+
+# Пытаемся подгрузить старые модули, если они есть (для совместимости)
 for m in ("diagnostic_engine", "image_ai", "recall_parser"):
     try:
         importlib.import_module(m)
     except Exception as e:
         print(f"{m} load fail:", e)
+
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from fastapi import FastAPI, UploadFile, File, Request
 from fastapi.responses import JSONResponse, FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
-import tempfile
 import os
 import pathlib
-import zipfile
-import httpx
-from PIL import Image, ImageDraw
 import requests
 import subprocess
-import io
+import io  
+from PIL import Image, ImageDraw
 from .security import apply_security
+# Импортируем функцию общения с ИИ
 from ai_helper import ask_ai as _ask_ai
 
 app = FastAPI()
@@ -33,16 +34,20 @@ def health():
 async def healthz():
     return {"status": "ok"}
 
+# Подключаем папку static для картинок и стилей
 app.mount("/", StaticFiles(directory=os.path.join(os.path.dirname(__file__), "..", "static"), html=True), name="static")
 
+# --- Глобальные переменные для модели ---
 _model_ready = False
 _model_dir = os.path.join(os.path.dirname(__file__), "..", "models")
 _yolo_model = None
 _icons_dir = os.path.join(os.path.dirname(__file__), "..", "static", "icons")
 
+# Генерация иконок (чтобы приложение было красивым)
 def _ensure_icons():
     try:
         os.makedirs(_icons_dir, exist_ok=True)
+        # Создаем простые иконки, если их нет
         for size in (192, 512):
             path = os.path.join(_icons_dir, f"icon-{size}.png")
             if os.path.exists(path):
@@ -50,248 +55,218 @@ def _ensure_icons():
             img = Image.new("RGBA", (size, size), "#FFFFFF")
             d = ImageDraw.Draw(img)
             c = "#2196F3"
-            s = size
-            w = max(2, s // 24)
-            pad = s // 8
-            screen = (pad, pad, s - pad, s // 2)
-            d.rounded_rectangle(screen, radius=s // 24, outline=c, width=w)
-            bh = s // 10
-            d.rectangle((int(pad * 1.5), int(s // 2 + pad // 2), int(s - pad * 1.5), int(s // 2 + pad // 2 + bh)), outline=c, width=w)
-            pw = s // 3
-            ph = s // 4
-            px = s // 2 - pw // 2
-            py = s - pad - ph
-            d.rounded_rectangle((px, py, px + pw, py + ph), radius=s // 32, outline=c, width=w)
+            d.rectangle((0, 0, size, size), fill="white")
+            d.ellipse((size//4, size//4, size*3//4, size*3//4), fill=c)
             img.save(path, "PNG")
-        final = os.path.join(_icons_dir, "icon-512-final.png")
-        if not os.path.exists(final):
-            size = 512
-            img = Image.new("RGBA", (size, size), "#FFFFFF")
-            d = ImageDraw.Draw(img)
-            c = "#2196F3"
-            s = size
-            w = max(2, s // 24)
-            pad = s // 8
-            screen = (pad, pad, s - pad, s // 2)
-            d.rounded_rectangle(screen, radius=s // 24, outline=c, width=w)
-            bh = s // 10
-            d.rectangle((int(pad * 1.5), int(s // 2 + pad // 2), int(s - pad * 1.5), int(s // 2 + pad // 2 + bh)), outline=c, width=w)
-            pw = s // 3
-            ph = s // 4
-            px = s // 2 - pw // 2
-            py = s - pad - ph
-            d.rounded_rectangle((px, py, px + pw, py + ph), radius=s // 32, outline=c, width=w)
-            img.save(final, "PNG")
     except Exception:
         pass
 
 _ensure_icons()
 
+# Загрузка файла весов (.pt)
 async def _ensure_model():
     global _model_ready
     if _model_ready:
         return
     pathlib.Path(_model_dir).mkdir(parents=True, exist_ok=True)
-    target6 = os.path.join(_model_dir, "devices6_yolov8n.pt")
-    default_path = os.path.join(_model_dir, "yolo_homeappliances_v1.pt")
+    
+    # Пути к файлам
+    target_path = os.path.join(_model_dir, "best.pt")
+    default_path = os.path.join(_model_dir, "yolov8n.pt")
     env_path = os.environ.get("YOLO_WEIGHTS_PATH", "")
-    url = os.environ.get("WEIGHTS_URL", "").strip()
-    bucket = os.environ.get("MODEL_BUCKET", "").replace("gs://", "").strip()
-
-    path_to_use = None
-    if url:
-        try:
-            r = requests.get(url, timeout=120)
-            if r.status_code == 200:
-                with open(target6, "wb") as wf:
-                    wf.write(r.content)
-                path_to_use = target6
-        except Exception:
-            path_to_use = None
-    elif bucket:
-        try:
-            full = f"gs://{bucket}/devices6_yolov8n.pt"
-            subprocess.run(["gsutil", "cp", full, target6], check=True)
-            path_to_use = target6
-        except Exception:
-            path_to_use = None
-    elif env_path and os.path.exists(env_path):
-        path_to_use = env_path
-    else:
-        path_to_use = default_path
-        print("Warning: using default /app/models/yolov8n.pt")
-
-    if path_to_use and os.path.exists(path_to_use):
-        os.environ["YOLO_WEIGHTS_PATH"] = path_to_use
+    
+    # 1. Если путь задан в переменной окружения и файл существует
+    if env_path and os.path.exists(env_path):
+        os.environ["YOLO_WEIGHTS_PATH"] = env_path
         _model_ready = True
-        base = os.path.basename(path_to_use)
-        if base == "devices6_yolov8n.pt":
-            print(f"Model loaded: {base} (6 classes)")
-        else:
-            print(f"Model loaded: {base} (COCO)")
-    else:
-        raise RuntimeError("Веса не найдены")
+        print(f"Model loaded from ENV: {env_path}")
+        return
 
+    # 2. Если файл уже есть в папке models (мы его запушили через git)
+    if os.path.exists(target_path):
+        os.environ["YOLO_WEIGHTS_PATH"] = target_path
+        _model_ready = True
+        print(f"Model loaded locally: {target_path}")
+        return
+
+    # 3. Если ничего нет — качаем стандартную модель (как заглушку)
+    if not os.path.exists(default_path):
+        print("Скачиваю стандартную модель YOLOv8n...")
+        try:
+            url = "https://github.com/ultralytics/assets/releases/download/v0.0.0/yolov8n.pt"
+            r = requests.get(url, timeout=60)
+            with open(default_path, "wb") as f:
+                f.write(r.content)
+        except Exception as e:
+            print("Ошибка скачивания модели:", e)
+    
+    os.environ["YOLO_WEIGHTS_PATH"] = default_path
+    _model_ready = True
+    print("Model loaded: default yolov8n.pt")
+
+# Инициализация YOLO
 def _ensure_yolo_model():
     global _yolo_model
     if _yolo_model is not None:
         return
     from ultralytics import YOLO
-    wp = os.environ.get("YOLO_WEIGHTS_PATH", os.path.join(_model_dir, "yolo_homeappliances_v1.pt"))
-    if not os.path.exists(wp):
-        raise RuntimeError("Веса не найдены")
-    _yolo_model = YOLO(wp)
-    expected = ["printer","smartphone","laptop","microwave","breadmaker","multivarka"]
+    
+    # Берем путь, который установили в _ensure_model
+    wp = os.environ.get("YOLO_WEIGHTS_PATH")
+    if not wp or not os.path.exists(wp):
+        # Фолбэк на стандартную, если что-то пошло не так
+        wp = os.path.join(_model_dir, "yolov8n.pt")
+        
+    print(f"Loading YOLO from: {wp}")
     try:
-        names = _yolo_model.names
-        if isinstance(names, dict):
-            current = [names.get(i) for i in range(len(expected))]
-        else:
-            current = list(names) if names else []
-        if current != expected:
-            _yolo_model.names = {i: expected[i] for i in range(len(expected))}
-    except Exception:
-        _yolo_model.names = {i: expected[i] for i in range(len(expected))}
+        _yolo_model = YOLO(wp)
+    except Exception as e:
+        print(f"Critical error loading YOLO: {e}")
+        # Пытаемся загрузить хоть что-то
+        _yolo_model = YOLO("yolov8n.pt")
 
+# ==========================================
+# 🧠 УМНАЯ ДИАГНОСТИКА (ИСПРАВЛЕНО)
+# ==========================================
 @app.post("/ai/classify")
 async def classify(file: UploadFile = File(...)):
     await _ensure_model()
     _ensure_yolo_model()
+    
+    # Читаем картинку
     data = await file.read()
     try:
         img = Image.open(io.BytesIO(data)).convert("RGB")
     except Exception:
-        return {"error": "invalid image"}
+        return {"error": "Файл не является изображением"}
+    
     try:
-        res = _yolo_model.predict(source=img, verbose=False)
-        r0 = res[0]
-        names = _yolo_model.names
-        boxes = r0.boxes
-        cls = boxes.cls.tolist() if hasattr(boxes.cls, "tolist") else list(boxes.cls)
-        confs = boxes.conf.tolist() if hasattr(boxes.conf, "tolist") else list(boxes.conf)
-        xyxy = boxes.xyxy.tolist() if hasattr(boxes.xyxy, "tolist") else []
-        detections = []
-        checklist = []
-        classes = []
-        for i, (c, s) in enumerate(zip(cls, confs)):
-            name = names[int(c)] if int(c) in names else str(int(c))
-            bbox = xyxy[i] if i < len(xyxy) else None
-            detections.append({"class": name, "confidence": float(s), "bbox": bbox})
-            if s >= 0.5:
-                checklist.append(name)
-                classes.append(int(c))
-        return {
-            "summary": f"Обнаружено объектов: {len(detections)}",
-            "diagnosisChecklist": checklist,
-            "repairChecklist": [],
-            "suspectNodes": detections,
-            "timeEstimateMinutes": {"min": 5, "max": 15},
-            "risks": [],
-            "classes": classes
-        }
-    except Exception:
-        try:
-            from ai_helper import search_similar
-            lbl = search_similar(data)
-            return {"summary": "fallback", "diagnosisChecklist": [lbl], "repairChecklist": [], "suspectNodes": [], "timeEstimateMinutes": {"min": 5, "max": 15}, "risks": [], "classes": []}
-        except Exception:
-            return {"error": "inference error"}
+        # 1. Распознаем объект через YOLO
+        # conf=0.25 — порог уверенности (можно менять)
+        results = _yolo_model.predict(source=img, conf=0.25, verbose=False)
+        r0 = results[0]
+        
+        found_objects = []
+        best_object_name = None
+        max_conf = 0.0
 
+        # Собираем все, что нашли
+        for box in r0.boxes:
+            cls_id = int(box.cls[0])
+            conf = float(box.conf[0])
+            name = _yolo_model.names[cls_id]
+            
+            found_objects.append({"class": name, "confidence": conf})
+            
+            # Ищем самый вероятный объект
+            if conf > max_conf:
+                max_conf = conf
+                best_object_name = name
+
+        # 2. Генерируем УМНЫЙ ОТВЕТ через DeepSeek/OpenAI
+        checklist = []
+        
+        if best_object_name:
+            # Если нашли прибор -> спрашиваем ИИ
+            print(f"Распознан объект: {best_object_name}. Запрашиваю чек-лист у ИИ...")
+            
+            try:
+                # Формируем запрос для ИИ
+                prompt = (
+                    f"Я загрузил фото устройства, это похоже на {best_object_name}. "
+                    "Напиши короткий чек-лист (3-4 пункта) для диагностики основных неисправностей этого прибора. "
+                    "Отвечай только пунктами, без лишних слов."
+                )
+                
+                # Вызываем функцию из ai_helper.py
+                ai_response = _ask_ai(prompt, device_type=best_object_name)
+                
+                # Превращаем текст от ИИ в список строк для красивого вывода
+                # Разделяем по переносам строк и убираем лишние знаки
+                checklist = [
+                    line.strip("- *1234567890.") 
+                    for line in ai_response.split('\n') 
+                    if len(line.strip()) > 5
+                ]
+            except Exception as e:
+                print(f"Ошибка ИИ: {e}")
+                checklist = [f"Обнаружен {best_object_name}. Проверьте питание.", "Осмотрите корпус на повреждения."]
+        else:
+            # Если ничего не нашли
+            best_object_name = "Неизвестное устройство"
+            checklist = ["Попробуйте сделать фото четче.", "Убедитесь, что прибор хорошо освещен."]
+
+        # 3. Возвращаем ответ приложению
+        return {
+            "summary": f"Распознано: {best_object_name}",
+            "diagnosisChecklist": checklist,  # <-- Сюда попадает ответ от ИИ
+            "repairChecklist": [],
+            "suspectNodes": found_objects,
+            "timeEstimateMinutes": {"min": 10, "max": 30},
+            "risks": [],
+            "classes": []
+        }
+
+    except Exception as e:
+        print("Ошибка в classify:", e)
+        return {"error": "Ошибка обработки изображения"}
+
+
+# ==========================================
+# 💬 ЧАТ (ИСПРАВЛЕНО)
+# ==========================================
 @app.get("/ai/ask")
 async def ask_page():
-    html = """<!doctype html><html lang=ru><head><meta charset=utf-8><meta name=viewport content='width=device-width,initial-scale=1'><title>Чат-советник</title></head><body><h1>Чат-советник</h1><form action='/ai/ask' method='post'><label>Вопрос:<br><textarea name='question' rows='3' style='width:100%'></textarea></label><br><label>Тип прибора:<br><input name='device_type' style='width:100%'></label><br><label>Бренд:<br><input name='brand' style='width:100%'></label><br><button type='submit'>Отправить</button></form><p><a href='/'>На главную</a></p></body></html>"""
-    return HTMLResponse(content=html)
+    return HTMLResponse(content="<h1>Чат-бот работает. Используйте интерфейс приложения.</h1>")
 
 @app.post("/ai/ask")
 async def ask(request: Request):
+    # Получаем данные (JSON или форма)
     ct = request.headers.get("content-type", "")
-    payload = {}
     if "application/json" in ct:
-        try:
-            payload = await request.json()
-        except Exception:
-            payload = {}
+        payload = await request.json()
     else:
-        try:
-            form = await request.form()
-            payload = dict(form)
-        except Exception:
-            payload = {}
-    q = (payload or {}).get("question") or ""
-    dt = (payload or {}).get("device_type") or ""
-    mn = (payload or {}).get("model_name") or ""
-    hist = (payload or {}).get("chat_history") or []
-    det = (payload or {}).get("detected_objects") or (payload or {}).get("detected") or []
-    if not q.strip():
-        if "application/json" in ct:
-            return {"answer": "Введите вопрос."}
-        else:
-            return HTMLResponse(content=f"""<!doctype html><html lang=ru><head><meta charset=utf-8><meta name=viewport content='width=device-width,initial-scale=1'><title>Чат-советник</title></head><body><h1>Чат-советник</h1><p>Введите вопрос.</p><p><a href='/'>На главную</a></p></body></html>""")
-    try:
-        prefix_lines = []
-        for m in hist[:20]:
-            r = (m or {}).get("role") or ""
-            t = (m or {}).get("text") or (m or {}).get("content") or ""
-            if not t:
-                continue
-            if r == "assistant":
-                prefix_lines.append(f"Assistant: {t}")
-            else:
-                prefix_lines.append(f"User: {t}")
-        if det:
-            prefix_lines.append("Распознанные детали: " + ", ".join([str(x) for x in det if x]))
-        prefix = ("История диалога:\n" + "\n".join(prefix_lines) + "\n\n") if prefix_lines else ""
-        prompt = prefix + q
-        ans = _ask_ai(prompt, device_type=dt, model_name=mn)
-    except Exception:
-        ans = "Ошибка обращения к ИИ."
-    if "application/json" in ct:
-        return {"answer": ans}
-    else:
-        return HTMLResponse(content=f"""<!doctype html><html lang=ru><head><meta charset=utf-8><meta name=viewport content='width=device-width,initial-scale=1'><title>Ответ — Чат-советник</title></head><body><h1>Ответ</h1><pre style='white-space:pre-wrap'>{ans}</pre><p><a href='/'>На главную</a></p></body></html>""")
+        form = await request.form()
+        payload = dict(form)
+    
+    question = payload.get("question", "")
+    device_type = payload.get("device_type", "")
+    history = payload.get("chat_history", [])
 
-@app.post("/ai/chat")
-async def chat(request: Request):
-    ct = request.headers.get("content-type", "")
-    payload = {}
-    if "application/json" in ct:
-        try:
-            payload = await request.json()
-        except Exception:
-            payload = {}
-    else:
-        try:
-            form = await request.form()
-            payload = dict(form)
-        except Exception:
-            payload = {}
-    q = (payload or {}).get("question") or ""
-    dt = (payload or {}).get("device_type") or ""
-    mn = (payload or {}).get("model_name") or ""
-    hist = (payload or {}).get("chat_history") or []
-    det = (payload or {}).get("detected_objects") or (payload or {}).get("detected") or []
-    if not q.strip():
-        return {"answer": "Введите вопрос."}
+    if not question.strip():
+        return {"answer": "Пожалуйста, напишите ваш вопрос."}
+
+    # Формируем историю переписки для контекста
+    context = ""
+    if history:
+        for msg in history[-5:]: # Берем последние 5 сообщений
+            role = msg.get("role", "user")
+            text = msg.get("text") or msg.get("content") or ""
+            context += f"{role}: {text}\n"
+
+    # Формируем промпт
+    full_prompt = ""
+    if context:
+        full_prompt += f"История диалога:\n{context}\n"
+    
+    full_prompt += f"Вопрос пользователя: {question}"
+
+    # Отправляем ИИ
     try:
-        prefix_lines = []
-        for m in hist[:20]:
-            r = (m or {}).get("role") or ""
-            t = (m or {}).get("text") or (m or {}).get("content") or ""
-            if not t:
-                continue
-            if r == "assistant":
-                prefix_lines.append(f"Assistant: {t}")
-            else:
-                prefix_lines.append(f"User: {t}")
-        if det:
-            prefix_lines.append("Распознанные детали: " + ", ".join([str(x) for x in det if x]))
-        prefix = ("История диалога:\n" + "\n".join(prefix_lines) + "\n\n") if prefix_lines else ""
-        prompt = prefix + q
-        ans = _ask_ai(prompt, device_type=dt, model_name=mn)
-    except Exception:
-        ans = "Ошибка обращения к ИИ."
-    return {"answer": ans}
+        # Передаем device_type, если он есть, чтобы ИИ знал контекст
+        answer = _ask_ai(full_prompt, device_type=device_type)
+    except Exception as e:
+        print(f"Ошибка в чате: {e}")
+        answer = "Прошу прощения, сейчас я не могу связаться с сервером. Попробуйте позже."
+
+    # Возвращаем JSON
+    if "application/json" in ct:
+        return {"answer": answer}
+    
+    # Возвращаем HTML (для тестов в браузере)
+    return HTMLResponse(content=f"<html><body><h3>Ответ:</h3><p>{answer}</p></body></html>")
 
 @app.get("/", include_in_schema=False)
 def read_index():
+    # Force update 2
     return FileResponse("static/index.html")
