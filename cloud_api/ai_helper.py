@@ -6,7 +6,7 @@ from openai import OpenAI
 # НАСТРОЙКИ (Берем из переменных Cloud Run)
 # ==========================================
 # Если ключа нет в настройках сервера, программа не упадет, а напишет None
-API_KEY = os.getenv("OPENAI_API_KEY") 
+API_KEY = os.getenv("DEEPSEEK_API_KEY") 
 BASE_URL = os.getenv("OPENAI_BASE_URL", "https://api.deepseek.com")
 MODEL_NAME = "deepseek-chat"
 
