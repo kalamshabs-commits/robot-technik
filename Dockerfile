@@ -1,36 +1,43 @@
+# Используем Python 3.11
 FROM python:3.11-slim
 
+# Настройки окружения
 ENV DEBIAN_FRONTEND=noninteractive \
     PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
 
+# Установка системных библиотек (нужны для OpenCV/YOLO)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libgl1 \
     libglib2.0-0 \
     libgomp1 \
-  && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
-# ---- Install Python deps (server) ----
-COPY requirements-server.txt /app/requirements.txt
-RUN pip install --no-cache-dir --extra-index-url https://download.pytorch.org/whl/cpu -r /app/requirements.txt
+# --- 1. Установка зависимостей ---
+# Убедитесь, что у вас файл называется requirements.txt (тот короткий, что я давал выше)
+COPY requirements.txt .
+RUN pip install --no-cache-dir --extra-index-url https://download.pytorch.org/whl/cpu -r requirements.txt
 
-# ---- Copy Flask app and assets ----
-COPY flask_app.py /app/flask_app.py
-COPY ai_helper.py /app/ai_helper.py
-COPY diagnostic_engine.py /app/diagnostic_engine.py
-COPY image_ai.py /app/image_ai.py
-COPY faults_library.json /app/faults_library.json
+# --- 2. Копирование кода ---
+# Копируем папку с бэкендом (FastAPI)
+COPY cloud_api/ /app/cloud_api/
+
+# Копируем статику (Frontend)
 COPY static/ /app/static/
 
-# ---- Copy YOLO model ----
-RUN mkdir -p /app/models
-COPY models/best.pt /app/models/best.pt
+# --- 3. Копирование модели ---
+# Мы настроили python-код искать best.pt в корне или в папке cloud_api.
+# Если у вас файл лежит в папке models локально, раскомментируйте первую строку:
+# COPY models/best.pt /app/best.pt
+# Если файл лежит в корне проекта локально, используйте эту строку:
+COPY best.pt /app/best.pt
 
-ENV YOLO_WEIGHTS_PATH=/app/models/best.pt
+# --- 4. Запуск ---
 ENV PORT=8080
 
-EXPOSE 8080
-
-CMD exec gunicorn --bind :$PORT --workers 1 --threads 8 --timeout 0 flask_app:app
+# ВАЖНО: Запускаем uvicorn (сервер для FastAPI)
+# cloud_api.ai_main:app означает:
+# папка cloud_api -> файл ai_main.py -> переменная app внутри него
+CMD ["uvicorn", "cloud_api.ai_main:app", "--host", "0.0.0.0", "--port", "8080"]
