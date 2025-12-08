@@ -28,8 +28,8 @@ button:hover{background:var(--blue-dark)}
 /* карточки */
 .card{border:1px solid #e5e7eb;border-radius:12px;padding:12px;margin:10px 0;background:#fff;box-shadow:0 2px 8px rgba(21,101,192,.06);transition:.2s}
 .card:hover{box-shadow:0 4px 12px rgba(21,101,192,.12)}
-.card-title{font-weight:700;color:#007bff !important;margin-bottom:6px}
-.kb-item h3{color:#007bff !important}
+.card-title{font-weight:bold;color:#0d6efd !important;margin-bottom:6px}
+.kb-item h3{color:#0d6efd !important}
 .chip{display:inline-block;padding:4px 8px;background:#e3f2fd;color:#0d47a1;border-radius:999px;margin:2px;font-size:12px}
 .risk{color:#b71c1c}
 .time{color:#1b5e20}

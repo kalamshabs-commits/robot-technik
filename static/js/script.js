@@ -127,10 +127,15 @@ async function handleFileSelect(e) {
             els.solveBtn.style.display = 'block'; // Show button
             els.deviceFallback.style.display = 'none';
         } else {
-            els.detectedText.textContent = "Не удалось распознать прибор. Выберите вручную:";
+            // UNBLOCK USER: Allow manual input even if not recognized
+            els.detectedText.textContent = "Не удалось распознать прибор. Введите симптомы:";
             els.detectedText.style.backgroundColor = '#ffebee';
             els.detectedText.style.color = '#c62828';
-            showDeviceFallback();
+            
+            currentDevice = "Неизвестное";
+            els.symptomBox.style.display = 'block';
+            els.solveBtn.style.display = 'block';
+            els.deviceFallback.style.display = 'none';
         }
         
     } catch (err) {

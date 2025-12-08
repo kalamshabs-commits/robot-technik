@@ -7,11 +7,8 @@ import google.generativeai as genai
 from typing import List, Dict, Optional, Tuple
 
 # --- CONFIGURATION ---
-GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
-if GEMINI_API_KEY:
-    genai.configure(api_key=GEMINI_API_KEY)
-    
-MODEL_NAME = 'gemini-1.5-pro'
+genai.configure(api_key=os.environ.get("GEMINI_API_KEY"))
+MODEL_NAME = "gemini-1.5-flash"
 
 # --- TRANSLATION DICTIONARY ---
 YOLO_CLASSES_RU = {
@@ -77,11 +74,11 @@ YOLO_CLASSES_RU = {
     "bed": "Кровать",
     "dining table": "Стол",
     "toilet": "Туалет",
-    "tv": "Телевизор",
+    "tv": "Монитор / Экран",
     "tvmonitor": "Монитор",
     "laptop": "Ноутбук",
     "mouse": "Мышь",
-    "remote": "Пульт ДУ",
+    "remote": "Пульт",
     "keyboard": "Клавиатура",
     "cell phone": "Смартфон",
     "microwave": "Микроволновка",
@@ -179,8 +176,8 @@ def analyze_image(image_bytes: bytes) -> Tuple[Optional[str], float]:
         
     try:
         img = Image.open(io.BytesIO(image_bytes))
-        # Lower confidence threshold to 0.20 as requested
-        results = MODEL(img, conf=0.20)
+        # Lower confidence threshold to 0.10 as requested
+        results = MODEL(img, conf=0.1)
         
         # Parse results
         if not results or not results[0].boxes:
@@ -288,6 +285,7 @@ def ask_ai(user_text: str, device_type: str = None, kb_info: str = None) -> str:
         
     except Exception as e:
         print(f"❌ Gemini API Error: {e}")
+        return f"SYSTEM ERROR: {str(e)}"
         
         # Fallback Logic
         if kb_info:
