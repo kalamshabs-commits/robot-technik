@@ -3,12 +3,15 @@ import json
 import io
 from PIL import Image
 from ultralytics import YOLO
-import google.generativeai as genai
+from openai import OpenAI
 from typing import List, Dict, Optional, Tuple
 
 # --- CONFIGURATION ---
-genai.configure(api_key=os.environ.get("GEMINI_API_KEY"))
-MODEL_NAME = "gemini-1.5-flash"
+client = OpenAI(
+    api_key="sk-fa49380289024753a4596a2c25dae955",
+    base_url="https://api.deepseek.com"
+)
+MODEL_NAME = "deepseek-chat"
 
 # --- TRANSLATION DICTIONARY ---
 YOLO_CLASSES_RU = {
@@ -74,7 +77,7 @@ YOLO_CLASSES_RU = {
     "bed": "Кровать",
     "dining table": "Стол",
     "toilet": "Туалет",
-    "tv": "Монитор / Экран",
+    "tv": "Экран / Монитор",
     "tvmonitor": "Монитор",
     "laptop": "Ноутбук",
     "mouse": "Мышь",
@@ -176,8 +179,8 @@ def analyze_image(image_bytes: bytes) -> Tuple[Optional[str], float]:
         
     try:
         img = Image.open(io.BytesIO(image_bytes))
-        # Lower confidence threshold to 0.10 as requested
-        results = MODEL(img, conf=0.1)
+        # Lower confidence threshold to 0.05 as requested
+        results = MODEL(img, conf=0.05)
         
         # Parse results
         if not results or not results[0].boxes:
@@ -253,14 +256,17 @@ def ask_ai(user_text: str, device_type: str = None, kb_info: str = None) -> str:
     if not device_type:
         device_type = _detect_device_rule_based(user_text)
     
-    # 2. Ask Gemini (Hybrid)
+    # 2. Ask DeepSeek (Hybrid)
     try:
-        model = genai.GenerativeModel(MODEL_NAME)
-        
         system_role = (
-            "Ты профессиональный мастер по ремонту. Твой язык Русский. Будь краток и точен. "
-            "Давай четкие, пошаговые инструкции. "
-            "Если тебя просят чек-лист, давай нумерованный список."
+              "Ты — русскоязычный технолог-робот. "
+             "По фото и описанию пользователя определяешь поломку и выдаёшь только то, что нужно для ремонта. "
+             "Язык — короткий, точный, без воды.\n"
+             "Формат ответа:\n"
+             "1. Диагноз (1 строка).\n"
+             "2. Причина (1 строка).\n"
+            "3. Нумерованный чек-лист ремонта (макс 5 шагов).\n"
+            "4. Список запчастей/инструментов через запятую."
         )
         
         user_content = user_text
@@ -277,14 +283,20 @@ def ask_ai(user_text: str, device_type: str = None, kb_info: str = None) -> str:
                 "Ответ должен быть единым, связным текстом (чек-листом)."
             )
             
-        # Gemini call
-        prompt = f"{system_role}\n\n{user_content}"
-        response = model.generate_content(prompt)
+        # DeepSeek call
+        response = client.chat.completions.create(
+            model=MODEL_NAME,
+            messages=[
+                {"role": "system", "content": system_role},
+                {"role": "user", "content": user_content},
+            ],
+            stream=False
+        )
         
-        return response.text
+        return response.choices[0].message.content
         
     except Exception as e:
-        print(f"❌ Gemini API Error: {e}")
+        print(f"❌ DeepSeek API Error: {e}")
         return f"SYSTEM ERROR: {str(e)}"
         
         # Fallback Logic
