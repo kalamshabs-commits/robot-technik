@@ -9,7 +9,88 @@ section{margin:18px 0;padding:12px;border:1px solid #e5e7eb;border-radius:12px;b
 input[type=text],textarea{width:100%;padding:10px;border-radius:8px;border:1px solid #cbd5e1;font-size:14px}
 button{padding:10px 14px;border-radius:8px;border:0;background:var(--blue);color:#fff;cursor:pointer}
 button:hover{background:var(--blue-dark)}
-#chatOut{min-height:60px;padding:10px;background:#f8fafc;border-radius:8px}
+/* Чат - Пузырьки */
+.chat-box {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 10px;
+}
+
+.msg-user {
+    align-self: flex-end;
+    background: #0d6efd;
+    color: white;
+    padding: 10px 15px;
+    border-radius: 15px 15px 0 15px;
+    max-width: 80%;
+    word-wrap: break-word;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+}
+
+.msg-ai {
+    align-self: flex-start;
+    background: #f1f0f0;
+    color: black;
+    padding: 10px 15px;
+    border-radius: 15px 15px 15px 0;
+    max-width: 80%;
+    word-wrap: break-word;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+}
+
+.solution-text {
+    display: none;
+    margin-top: 10px;
+    padding: 10px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border-left: 3px solid #0d6efd;
+}
+
+.solution-text.visible {
+    display: block;
+    animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-5px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.chat-controls {
+    display: flex;
+    gap: 8px;
+    padding: 10px;
+    background: white;
+    border-top: 1px solid #eee;
+}
+
+.chat-buttons {
+    display: flex;
+    gap: 5px;
+}
+
+.chat-buttons button {
+    padding: 10px;
+    background: #f1f0f0;
+    color: #333;
+}
+
+.chat-buttons button#sendBtn {
+    background: #0d6efd;
+    color: white;
+}
+
+.chat-buttons button#attachBtn {
+    font-size: 18px;
+}
+
+#chatOut {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
 .actions-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .big-btn{display:block;text-align:center;padding:18px;border-radius:16px;background:linear-gradient(180deg,#1e88e5,#1976d2);color:#fff;text-decoration:none;box-shadow:0 6px 16px rgba(25,118,210,.25)}
 .big-btn:active{transform:translateY(1px)}

@@ -21,6 +21,9 @@
   <!-- Стили тоже берем из static -->
   <link rel="stylesheet" href="/static/style.css">
   
+  <!-- html2pdf library -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
   <title>Робот-техник</title>
 </head>
 <body>
@@ -79,7 +82,10 @@
       
       <div class="chat-controls">
         <input id="chatInput" type="text" placeholder="Введите вопрос...">
+        <!-- Скрытый инпут для файла -->
+        <input type="file" id="chatFileInput" style="display: none;" accept=".txt,.pdf">
         <div class="chat-buttons">
+            <button id="attachBtn">📎</button>
             <button id="micBtn">🎙️</button>
             <button id="sendBtn">➤</button>
         </div>

@@ -15,103 +15,12 @@ MODEL_NAME = "deepseek-chat"
 
 # --- TRANSLATION DICTIONARY ---
 YOLO_CLASSES_RU = {
-    "person": "Человек",
-    "bicycle": "Велосипед",
-    "car": "Автомобиль",
-    "motorcycle": "Мотоцикл",
-    "airplane": "Самолет",
-    "bus": "Автобус",
-    "train": "Поезд",
-    "truck": "Грузовик",
-    "boat": "Лодка",
-    "traffic light": "Светофор",
-    "fire hydrant": "Пожарный гидрант",
-    "stop sign": "Знак СТОП",
-    "parking meter": "Паркомат",
-    "bench": "Скамейка",
-    "bird": "Птица",
-    "cat": "Кошка",
-    "dog": "Собака",
-    "horse": "Лошадь",
-    "sheep": "Овца",
-    "cow": "Корова",
-    "elephant": "Слон",
-    "bear": "Медведь",
-    "zebra": "Зебра",
-    "giraffe": "Жираф",
-    "backpack": "Рюкзак",
-    "umbrella": "Зонт",
-    "handbag": "Сумка",
-    "tie": "Галстук",
-    "suitcase": "Чемодан",
-    "frisbee": "Фрисби",
-    "skis": "Лыжи",
-    "snowboard": "Сноуборд",
-    "sports ball": "Мяч",
-    "kite": "Воздушный змей",
-    "baseball bat": "Бейсбольная бита",
-    "baseball glove": "Бейсбольная перчатка",
-    "skateboard": "Скейтборд",
-    "surfboard": "Доска для серфинга",
-    "tennis racket": "Теннисная ракетка",
-    "bottle": "Бутылка",
-    "wine glass": "Бокал",
-    "cup": "Чашка",
-    "fork": "Вилка",
-    "knife": "Нож",
-    "spoon": "Ложка",
-    "bowl": "Миска",
-    "banana": "Банан",
-    "apple": "Яблоко",
-    "sandwich": "Сэндвич",
-    "orange": "Апельсин",
-    "broccoli": "Брокколи",
-    "carrot": "Морковь",
-    "hot dog": "Хот-дог",
-    "pizza": "Пицца",
-    "donut": "Пончик",
-    "cake": "Торт",
-    "chair": "Стул",
-    "couch": "Диван",
-    "potted plant": "Цветок в горшке",
-    "bed": "Кровать",
-    "dining table": "Стол",
-    "toilet": "Туалет",
-    "tv": "Экран / Монитор",
-    "tvmonitor": "Монитор",
-    "laptop": "Ноутбук",
-    "mouse": "Мышь",
-    "remote": "Пульт",
-    "keyboard": "Клавиатура",
-    "cell phone": "Смартфон",
-    "microwave": "Микроволновка",
-    "oven": "Духовка / Хлебопечка",
-    "toaster": "Тостер / Мультиварка",
-    "sink": "Раковина",
-    "refrigerator": "Холодильник",
-    "book": "Книга",
-    "clock": "Часы",
-    "vase": "Ваза",
-    "scissors": "Ножницы",
-    "teddy bear": "Плюшевый мишка",
-    "hair drier": "Фен",
-    "toothbrush": "Зубная щетка",
-    "printer": "Принтер",
-    # Specific Appliances (mapped to YOLO classes or custom logic)
-    "multicooker": "Мультиварка",
-    "breadmaker": "Хлебопечка",
-    "washer": "Стиральная машина",
-    "dryer": "Сушильная машина",
-    "dishwasher": "Посудомойка",
-    "heater": "Обогреватель",
-    "air conditioner": "Кондиционер",
-    "fan": "Вентилятор",
-    "vacuum": "Пылесос",
-    "iron": "Утюг",
-    "kettle": "Чайник",
-    "blender": "Блендер",
-    "mixer": "Миксер",
-    "coffee maker": "Кофеварка"
+    'cell phone': 'Смартфон', 'remote': 'Смартфон',
+    'laptop': 'Ноутбук', 'tv': 'Ноутбук',
+    'printer': 'Принтер', 'mouse': 'Принтер',
+    'toaster': 'Хлебопечка',
+    'microwave': 'Микроволновка',
+    'oven': 'Мультиварка', 'bowl': 'Мультиварка', 'pot': 'Мультиварка'
 }
 
 ALLOWED_DEVICES = {
@@ -179,8 +88,8 @@ def analyze_image(image_bytes: bytes) -> Tuple[Optional[str], float]:
         
     try:
         img = Image.open(io.BytesIO(image_bytes))
-        # Lower confidence threshold to 0.05 as requested
-        results = MODEL(img, conf=0.05)
+        # Lower confidence threshold to 0.1 as requested
+        results = MODEL(img, conf=0.1)
         
         # Parse results
         if not results or not results[0].boxes:
@@ -191,6 +100,10 @@ def analyze_image(image_bytes: bytes) -> Tuple[Optional[str], float]:
         conf = float(box.conf)
         name = results[0].names[cls_id]
         
+        # Only return if it's in our allowed list
+        if name not in YOLO_CLASSES_RU:
+             return None, 0.0
+
         return name, conf
         
     except Exception as e:
@@ -243,12 +156,12 @@ def get_local_solution(device: str, query: str) -> Optional[str]:
     return None
 
 # --- AI CLIENT ---
-def ask_ai(user_text: str, device_type: str = None, kb_info: str = None) -> str:
+def ask_ai(user_text: str, device_type: str = None, kb_info: str = None, context_text: str = None) -> str:
     """
     Main entry point for AI advice.
     Hybrid Logic:
     1. Try rule-based device detection if not provided.
-    2. Google Gemini API with KB info context.
+    2. DeepSeek API with KB info context.
     3. Fallback to local DB if API fails.
     """
     
@@ -259,15 +172,15 @@ def ask_ai(user_text: str, device_type: str = None, kb_info: str = None) -> str:
     # 2. Ask DeepSeek (Hybrid)
     try:
         system_role = (
-              "Ты — русскоязычный технолог-робот. "
-             "По фото и описанию пользователя определяешь поломку и выдаёшь только то, что нужно для ремонта. "
-             "Язык — короткий, точный, без воды.\n"
-             "Формат ответа:\n"
-             "1. Диагноз (1 строка).\n"
-             "2. Причина (1 строка).\n"
-            "3. Нумерованный чек-лист ремонта (макс 5 шагов).\n"
-            "4. Список запчастей/инструментов через запятую."
+            "Ты профессиональный мастер по ремонту. Твой язык Русский. "
+            "Если пользователь просто здоровается — отвечай кратко и вежливо. "
+            "Если описывает проблему — отвечай как эксперт (Диагноз, Причина, Решение). "
+            "Будь краток и точен. "
+            "Если тебя просят чек-лист, давай нумерованный список."
         )
+        
+        if context_text:
+            system_role += f"\nИспользуй эту информацию из документа: {context_text[:2000]}..." # Limit context size
         
         user_content = user_text
         if device_type:

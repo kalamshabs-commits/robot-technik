@@ -36,6 +36,8 @@ const els = {
     chatInput: document.getElementById('chatInput'),
     sendBtn: document.getElementById('sendBtn'),
     micBtn: document.getElementById('micBtn'),
+    attachBtn: document.getElementById('attachBtn'),
+    chatFileInput: document.getElementById('chatFileInput'),
     
     // Knowledge
     kbFilters: document.getElementById('kbFilters'),
@@ -209,15 +211,40 @@ async function getSolution() {
 function downloadChecklist() {
     if (!currentSolutionText) return;
     
-    const blob = new Blob([currentSolutionText], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `Checklist_${currentDevice}_${new Date().toISOString().slice(0,10)}.txt`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    // Create element for PDF generation
+    const element = document.createElement('div');
+    element.innerHTML = `
+        <h2 style="color: #0d6efd;">Отчет диагностики</h2>
+        <p><strong>Устройство:</strong> ${RU_NAMES[currentDevice] || currentDevice}</p>
+        <p><strong>Дата:</strong> ${new Date().toLocaleDateString()}</p>
+        <hr>
+        ${els.aiChecklist.innerHTML}
+    `;
+    
+    // Use html2pdf
+    const opt = {
+        margin:       10,
+        filename:     `Checklist_${currentDevice}_${new Date().toISOString().slice(0,10)}.pdf`,
+        image:        { type: 'jpeg', quality: 0.98 },
+        html2canvas:  { scale: 2 },
+        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    };
+
+    // If html2pdf is available (CDN loaded)
+    if (window.html2pdf) {
+        html2pdf().set(opt).from(element).save();
+    } else {
+        // Fallback to TXT if library fails
+        alert("Библиотека PDF не загружена. Скачиваю TXT.");
+        const blob = new Blob([currentSolutionText], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `Checklist_${currentDevice}.txt`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+    }
 }
 
 function renderChecklist(checklist, rawText) {
@@ -238,6 +265,40 @@ function renderChecklist(checklist, rawText) {
 function initChat() {
     if (els.sendBtn) els.sendBtn.addEventListener('click', sendChatMessage);
     
+    // File Attachment
+    if (els.attachBtn && els.chatFileInput) {
+        els.attachBtn.addEventListener('click', () => {
+            els.chatFileInput.click();
+        });
+        
+        els.chatFileInput.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            // Show loading state
+            addMessage('user', `📎 Загружаю файл: ${file.name}...`);
+            
+            const fd = new FormData();
+            fd.append('file', file);
+            
+            try {
+                const res = await fetch(`${API_BASE}/ai/upload_file`, {
+                    method: 'POST',
+                    body: fd
+                });
+                const data = await res.json();
+                
+                if (data.status === 'success') {
+                    addMessage('ai', `Файл "${file.name}" проанализирован! Теперь вы можете задавать вопросы по его содержанию.`);
+                } else {
+                    addMessage('ai', `Ошибка загрузки: ${data.message}`);
+                }
+            } catch (err) {
+                addMessage('ai', "Ошибка отправки файла.");
+            }
+        });
+    }
+
     // Voice Input (Web Speech API)
     if (els.micBtn && ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -334,15 +395,32 @@ function renderKB(db) {
             const card = document.createElement('div');
             card.className = 'card kb-item';
             card.dataset.device = deviceKey;
+            
+            // Generate unique ID for toggle
+            const toggleId = `sol-${Math.random().toString(36).substr(2, 9)}`;
+            
             card.innerHTML = `
                 <div style="font-size: 12px; color: #666; text-transform: uppercase;">${RU_NAMES[deviceKey] || deviceKey}</div>
                 <h3 style="margin: 5px 0;">${fault.title}</h3>
-                <p>${fault.solution}</p>
+                <button class="primary-btn" onclick="toggleSolution('${toggleId}')" style="margin-top:5px; font-size:12px; padding: 6px 12px;">Как починить?</button>
+                <div id="${toggleId}" class="solution-text">${fault.solution}</div>
             `;
             els.kbList.appendChild(card);
         });
     });
 }
+
+window.toggleSolution = function(id) {
+    const el = document.getElementById(id);
+    if (el) {
+        if (el.style.display === 'block') {
+            el.style.display = 'none';
+        } else {
+            el.style.display = 'block';
+            el.classList.add('visible');
+        }
+    }
+};
 
 window.filterKB = function(device) {
     // Update buttons

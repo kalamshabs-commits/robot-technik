@@ -1,4 +1,6 @@
 import os
+import io
+import pypdf
 from fastapi import FastAPI, UploadFile, File, Request
 from fastapi.responses import JSONResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -8,6 +10,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from .ai_helper import FAULTS_DB, ask_ai, analyze_image, YOLO_CLASSES_RU, get_local_solution
 
 app = FastAPI()
+
+# Global context for uploaded files
+file_context = {"content": None}
 
 # Разрешаем запросы с фронтенда
 app.add_middleware(
@@ -33,6 +38,31 @@ def get_kb():
     if FAULTS_DB:
         return JSONResponse(content=FAULTS_DB)
     return JSONResponse(content={"error": "Database empty"}, status_code=404)
+
+@app.post("/ai/upload_file")
+async def upload_file(file: UploadFile = File(...)):
+    """
+    Step 3: Upload file (.txt or .pdf) and extract text context.
+    """
+    try:
+        content = await file.read()
+        text = ""
+        
+        if file.filename.endswith(".pdf"):
+            # Extract text from PDF
+            pdf_reader = pypdf.PdfReader(io.BytesIO(content))
+            for page in pdf_reader.pages:
+                text += page.extract_text() + "\n"
+        else:
+            # Assume text file
+            text = content.decode("utf-8")
+            
+        file_context['content'] = text
+        return {"status": "success", "message": "Файл проанализирован и добавлен в контекст."}
+        
+    except Exception as e:
+        print(f"❌ Upload Error: {e}")
+        return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
 
 @app.post("/ai/classify")
 async def classify(file: UploadFile = File(...)):
@@ -113,7 +143,7 @@ async def ask(request: Request):
     if not question:
         return {"answer": "Я слушаю вас!"}
 
-    answer = ask_ai(question)
+    answer = ask_ai(question, context_text=file_context.get('content'))
     return {"answer": answer}
 
 # Подключение статики
