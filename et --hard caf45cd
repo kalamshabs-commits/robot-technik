@@ -1,0 +1,36 @@
+[33m8c9ba4b[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m)[m Fix mobile layout, restore diagnostics and chat
+[33m361420a[m Final Release: Custom YOLO model, PDF generation, Voice input & Chat files
+[33mf7c3703[m Final Release: Custom YOLO model, PDF export, Chat files
+[33m98afec6[m Update: Final UI design fixes and restore modern look
+[33m5639097[m Fix: Correct static files mounting in FastAPI
+[33m5a9ddd4[m Fix: Correct static files mounting in FastAPI
+[33m37f88c5[m Fix: Restore modern UI/CSS and update Dockerfile for deployment
+[33m25387ba[m Fix: Update Dockerfile for Cloud Run, add PDF generation backend, enable chat file upload
+[33mcaf45cd[m Final Fix: Fixed Unknown Device bug, Added DOCX support, Forced AI to read files
+[33m6eceef9[m Fixed 'Unknown Device' bug: corrected translation logic in backend
+[33m81bdde4[m Final Diploma: Connected custom YOLO model (best.pt), Fixed UI, DeepSeek
+[33m1c78113[m Final Diploma Version: Custom YOLO Model, DeepSeek, PDF Export
+[33m84f8f3e[m Final Release: PDF, File Upload, Blue UI, DeepSeek
+[33m8bdd500[m Final version: Switch back to DeepSeek, improve YOLO sensitivity, fix UI
+[33m681f036[m Fix Gemini 404 error (update lib to 0.8.3) and improve YOLO sensitivity
+[33m5fa9ac0[m Final fix: Gemini Flash, YOLO sensitive, Blue UI
+[33mc0709a9[m Migrate to Gemini 1.5 Pro, Fix UI colors, Improve YOLO recognition
+[33m4680c09[m Fix critical server crash: paths, imports and logic
+[33mb30f66e[m Fix deployment: Dockerfile port, backend logic, frontend updates
+[33me95af47[m Fix uvicorn command and verify init file
+[33m61d49a8[m Fix requirements.txt and torch version
+[33m652ddad[m Полный переход на FastAPI, исправление script.js и базы знаний
+[33mc77e076[m Исправление логики AI, базы знаний и фронтенда
+[33m4a9faa1[m Final Fix: Smart Chat and Database
+[33mddd1b30[m Set API key to DEEPSEEK_API_KEY
+[33m3fe0ed0[m NUCLEAR UPDATE
+[33mc54b33a[m Real fix for AI
+[33m92af693[m Fix api key name
+[33m02c1582[m Add model weights
+[33m1d58f8f[m Fix cloud run error
+[33m55494a3[m Correct Dockerfile
+[33m2169f43[m Fix final
+[33m85f1f60[m Финальная сборка: единый сервер Flask + рабочий SW
+[33ma60b020[m Исправил ошибки в JS
+[33mb15731a[m Добавил файл модели
+[33m65311c6[m Чистая версия без venv
