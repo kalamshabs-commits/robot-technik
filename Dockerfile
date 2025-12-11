@@ -1,37 +1,24 @@
-FROM python:3.11-slim
+# Используем Python 3.10
+FROM python:3.10-slim
 
-ENV DEBIAN_FRONTEND=noninteractive \
-    PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1
+# Настройки Python
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
 
-# Install system dependencies for OpenCV/YOLO
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    libgl1 \
-    libglib2.0-0 \
-    libgomp1 \
-    && rm -rf /var/lib/apt/lists/*
-
+# Рабочая папка
 WORKDIR /app
 
-# --- 1. Dependencies ---
-COPY requirements-server.txt /app/requirements.txt
-RUN pip install --no-cache-dir --extra-index-url https://download.pytorch.org/whl/cpu -r requirements.txt
+# --- 1. Установка системных библиотек (В ОДНУ СТРОКУ) ---
+# Так редактор перестанет ругаться на отступы и пробелы
+RUN apt-get update && apt-get install -y --no-install-recommends libgl1-mesa-glx libglib2.0-0 && rm -rf /var/lib/apt/lists/*
 
-# --- 2. Code ---
-COPY cloud_api/ /app/cloud_api/
-COPY static/ /app/static/
+# --- 2. Установка зависимостей ---
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy Knowledge Base (Important!)
-COPY faults_library.json /app/faults_library.json
+# --- 3. Копирование кода ---
+COPY . .
 
-# --- 3. Model ---
-# Copy model to a standard location
-RUN mkdir -p /app/models
-COPY models/best.pt /app/models/best.pt
-ENV YOLO_WEIGHTS_PATH=/app/models/best.pt
-
-# --- 4. Run ---
+# --- 4. Запуск ---
 ENV PORT=8080
-
-# Use shell form to allow variable expansion ($PORT)
-CMD uvicorn cloud_api.ai_main:app --host 0.0.0.0 --port ${PORT:-8080}
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8080"]
