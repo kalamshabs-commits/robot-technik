@@ -26,6 +26,7 @@ def get_yolo_model():
         return None
 
     try:
+        logger.info(f"🔍 Загружаю модель из: {model_path}")
         _model = YOLO(model_path)
         logger.info(f"🚀 Модель загружена успешно.")
     except Exception as e:

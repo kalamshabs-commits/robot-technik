@@ -32,7 +32,7 @@ from plyer import filechooser
 from kivy.base import EventLoop
 from kivy.clock import Clock
 import asyncio
-
+import requests 
 # ===== подключение логики =====
 from image_ai import recognize_objects
 from diagnostic_engine import diagnose
@@ -242,7 +242,10 @@ class RobotTechnicianUI(BoxLayout):
 
     def _analyze_image(self):
         try:
+            # 1. Распознаем объекты (Локально)
             objs = recognize_objects(self.photo_path)
+
+            # 2. Определяем устройство (если не выбрано)
             device = self.device_spinner.text
             if device == "Выберите устройство" or device == "—":
                 try:
@@ -251,21 +254,35 @@ class RobotTechnicianUI(BoxLayout):
                     Clock.schedule_once(lambda dt: setattr(self.device_spinner, "text", device), 0)
                 except Exception:
                     device = "Неизвестно"
+
+            # 3. Диагностика
             model = self.model_spinner.text
             report = diagnose(device, model, objs)
             self.last_report = report
+
+            # 4. Формирование отчета
             out = f"[b]📋 Диагностический отчёт[/b]\n\n"
             out += f"[b]Устройство:[/b] {device} ({model})\n"
             out += f"[b]Сводка:[/b] {report['summary']}\n\n"
+
             if report.get("risks"):
                 out += "[color=ff3333]⚠️ Риски:[/color]\n" + "\n".join(f"• {r}" for r in report["risks"]) + "\n\n"
+
             if report.get("diagnosisChecklist"):
-                out += "🔧 [b]Шаги диагностики:[/b]\n" + "\n".join(f"• {d['step']}" for d in report["diagnosisChecklist"]) + "\n\n"
-            out += f"⏱ Оценка времени: {report['timeEstimateMinutes']['min']}–{report['timeEstimateMinutes']['max']} мин."
+                # Исправил тут возможную ошибку со словарями
+                steps_text = "\n".join([f"• {d['step']}" for d in report["diagnosisChecklist"]])
+                out += f"🔧 [b]Шаги диагностики:[/b]\n{steps_text}\n\n"
+
+            # Исправил строку со временем
+            min_t = report['timeEstimateMinutes']['min']
+            max_t = report['timeEstimateMinutes']['max']
+            out += f"⏱ Оценка времени: {min_t}–{max_t} мин."
+
             Clock.schedule_once(lambda dt: self._close_progress_and_show(out), 0)
+
         except Exception as e:
             Clock.schedule_once(lambda dt: self._show_error(str(e)), 0)
-
+            
     def _close_progress_and_show(self, text):
         if hasattr(self, "_progress_event") and self._progress_event:
             self._progress_event.cancel()

@@ -109,7 +109,7 @@ def ask_ai(user_text, device_type="Неизвестное устройство")
             json={
                 "model": "deepseek-chat",
                 "messages": [
-                    {"role": "system", "content": system_prompt},
+                    {"role": "system", "content": system_role},
                     {"role": "user", "content": user_text}
                 ]
             },
