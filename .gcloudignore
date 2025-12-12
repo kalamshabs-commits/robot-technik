@@ -1,57 +1,13 @@
-# ---------------------------
-# Ignore Python virtual environments
-# ---------------------------
-.venv/
-venv/
-.venv.bak/
-
-# ---------------------------
-# Ignore caches
-# ---------------------------
-__pycache__/
+.git
+.gitignore
+.venv
+__pycache__
+node_modules
+Dockerfile
+README.md
 *.pyc
+*.pyo
+*.pyd
 
-# ---------------------------
-# Ignore YOLO models and large archives (we'll copy только нужные в Dockerfile)
-# ---------------------------
-models/*.pt
-models/*.zip
-*.zip
-*.tgz
-
-# ---------------------------
-# Ignore large local assets
-# ---------------------------
-assets/
-robot-tech/
-client/
-backend/
-core/
-data/
-docker/
-
-# ---------------------------
-# Ignore Node.js artifacts
-# ---------------------------
-node_modules/
-
-# ---------------------------
-# Ignore IDE and OS junk
-# ---------------------------
-.vscode/
-.idea/
-Thumbs.db
-.DS_Store
-
-# ---------------------------
-# Allow only necessary files for Docker build
-# ---------------------------
-!Dockerfile
-!cloudbuild.yaml
-!fastapi_yolo/**
-!requirements-server.txt
-!requirements.txt
+# Исключение для модели (чтобы она загрузилась, даже если тяжелая)
 !models/best.pt
-!static/**
-!alembic.ini
-!alembic/**

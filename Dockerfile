@@ -1,24 +1,23 @@
-# Используем Python 3.10
 FROM python:3.10-slim
 
-# Настройки Python
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PYTHONUNBUFFERED=1
+# Установка системных зависимостей для OpenCV и YOLO
+RUN apt-get update && apt-get install -y \
+    libgl1 \
+    libglib2.0-0 \
+    && rm -rf /var/lib/apt/lists/*
 
-# Рабочая папка
+# Рабочая директория
 WORKDIR /app
 
-# --- 1. Установка системных библиотек (В ОДНУ СТРОКУ) ---
-# Так редактор перестанет ругаться на отступы и пробелы
-RUN apt-get update && apt-get install -y --no-install-recommends libgl1-mesa-glx libglib2.0-0 && rm -rf /var/lib/apt/lists/*
-
-# --- 2. Установка зависимостей ---
+# Копирование зависимостей и установка
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# --- 3. Копирование кода ---
+# Копирование кода приложения
 COPY . .
 
-# --- 4. Запуск ---
+# Настройка порта (Google Cloud Run ожидает 8080)
 ENV PORT=8080
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8080"]
+
+# Запуск приложения
+CMD streamlit run app_main.py --server.port=8080 --server.address=0.0.0.0
