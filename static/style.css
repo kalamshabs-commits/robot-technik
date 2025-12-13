@@ -256,3 +256,33 @@ button:hover{background:var(--blue-dark)}
 .progress>.bar{position:absolute;left:0;top:0;bottom:0;width:0;background:var(--blue);transition:width .25s ease}
 .fade-in{animation:fade .25s ease both}
 @keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+
+.tabbar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    z-index: 9999;
+    background: #fff;
+    border-top: 1px solid #e5e7eb;
+    display: flex;
+    justify-content: space-around;
+    padding-bottom: env(safe-area-inset-bottom);
+}
+
+.tab {
+    flex: 1;
+    padding: 12px 8px;
+    background: #fff;
+    color: #0f172a;
+    border: 0;
+}
+
+.tab.active {
+    color: #1976d2;
+    font-weight: 600;
+}
+
+.app-container {
+    padding-bottom: 80px;
+}

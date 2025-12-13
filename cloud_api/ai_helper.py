@@ -95,21 +95,26 @@ def analyze_image(image_bytes):
             return None, 0.0
 
         # ПЕРЕБИРАЕМ ВСЕ НАЙДЕННЫЕ ОБЪЕКТЫ
+        best_name = None
+        best_conf = 0.0
+
         for r in results:
             if hasattr(r, 'boxes'):
                 for box in r.boxes:
                     cls_id = int(box.cls[0])
-                    # Получаем имя класса из модели
                     eng_name = MODEL.names[cls_id] 
                     conf = float(box.conf[0])
                     
                     logger.info(f"YOLO увидела: {eng_name} ({conf:.2f})")
 
-                    # Если этот класс есть в нашем списке — возвращаем перевод
                     if eng_name in YOLO_CLASSES_RU:
-                        return YOLO_CLASSES_RU[eng_name], conf
+                        if conf > best_conf:
+                            best_conf = conf
+                            best_name = YOLO_CLASSES_RU[eng_name]
         
-        # Если ничего из нашего списка не нашли
+        if best_name:
+            return best_name, best_conf
+        
         return None, 0.0
         
     except Exception as e:
