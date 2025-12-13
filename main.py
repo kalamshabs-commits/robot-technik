@@ -6,6 +6,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import JSONResponse, FileResponse
 from pydantic import BaseModel
 from typing import Optional
+import pypdf
 
 # Импортируем нашу логику
 from cloud_api.ai_helper import analyze_image, ask_ai, FAULTS_DB
@@ -62,6 +63,38 @@ async def analyze_endpoint(file: UploadFile = File(...)):
             })
     except Exception as e:
         logger.error(f"Error in /analyze: {e}")
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+@app.post("/upload_chat_file")
+async def upload_chat_file(file: UploadFile = File(...)):
+    """
+    Принимает PDF или TXT, возвращает текст.
+    """
+    try:
+        content = ""
+        filename = file.filename.lower()
+        
+        if filename.endswith('.pdf'):
+            # Читаем PDF с помощью pypdf
+            pdf_bytes = await file.read()
+            pdf_file = io.BytesIO(pdf_bytes)
+            reader = pypdf.PdfReader(pdf_file)
+            for page in reader.pages:
+                text = page.extract_text()
+                if text:
+                    content += text + "\n"
+        
+        elif filename.endswith('.txt'):
+            content_bytes = await file.read()
+            content = content_bytes.decode('utf-8', errors='ignore')
+            
+        else:
+            return JSONResponse({"error": "Unsupported file format. Use PDF or TXT."}, status_code=400)
+            
+        return {"text": content.strip(), "filename": file.filename}
+        
+    except Exception as e:
+        logger.error(f"Error in /upload_chat_file: {e}")
         return JSONResponse({"error": str(e)}, status_code=500)
 
 @app.post("/ask_chat")

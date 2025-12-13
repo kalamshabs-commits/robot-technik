@@ -4,6 +4,40 @@ const API_BASE = "";
 // --- STATE ---
 let currentDevice = null;
 let currentSolutionText = "";
+let chatContext = ""; // Контекст из файла
+
+// --- KB DATA (Static) ---
+const kbData = [
+    // --- МУЛЬТИВАРКА ---
+    { id: 1, category: 'multicooker', title: 'Ошибка E4: Датчик давления', solution: 'Проверьте шлейф верхнего датчика (в крышке). Часто перебивается при открытии/закрытии.' },
+    { id: 2, category: 'multicooker', title: 'Не держит давление / Пар из-под крышки', solution: 'Износилось или загрязнилось силиконовое уплотнительное кольцо. Промойте или замените его. Проверьте клапан выпуска пара.' },
+    { id: 3, category: 'multicooker', title: 'Не включается вообще', solution: 'Проверьте сетевой кабель. Если кабель исправен, скорее всего сгорел термопредохранитель на дне устройства.' },
+
+    // --- ХЛЕБОПЕЧКА ---
+    { id: 4, category: 'breadmaker', title: 'Тесто не поднимается', solution: 'Проверьте срок годности дрожжей. Если дрожжи свежие, возможно неисправен ТЭН (нет нагрева для брожения).' },
+    { id: 5, category: 'breadmaker', title: 'Вал не вращается (гудит)', solution: 'Слетел или порвался ремень привода двигателя. Требуется разборка корпуса и замена ремня.' },
+    { id: 6, category: 'breadmaker', title: 'Ведро протекает или скрипит', solution: 'Износился сальник ведра. Требуется ремкомплект ведра (сальник + подшипник) или замена ведра целиком.' },
+
+    // --- НОУТБУК ---
+    { id: 7, category: 'laptop', title: 'Перегрев и выключение', solution: 'Забита пылью система охлаждения. Требуется разборка, чистка кулера и замена термопасты на процессоре.' },
+    { id: 8, category: 'laptop', title: 'Нет изображения (черный экран)', solution: 'Попробуйте подключить внешний монитор. Если там есть картинка — проблема в матрице или шлейфе. Если нет — проблема в видеочипе или ОЗУ.' },
+    { id: 9, category: 'laptop', title: 'Не заряжается', solution: '1. Проверьте блок питания мультиметром. \n2. Осмотрите гнездо зарядки (могло расшататься). \n3. Износ аккумулятора.' },
+
+    // --- ПРИНТЕР ---
+    { id: 10, category: 'printer', title: 'Полосы при печати', solution: 'Струйный: засохли дюзы (сделайте глубокую прочистку). Лазерный: износ фотобарабана или заканчивается тонер.' },
+    { id: 11, category: 'printer', title: 'Зажевал бумагу', solution: 'Откройте заднюю или переднюю крышку. Аккуратно вытяните лист по ходу движения бумаги. Проверьте, нет ли посторонних предметов (скрепок).' },
+    { id: 12, category: 'printer', title: 'Компьютер не видит принтер', solution: '1. Переподключите USB-кабель в другой порт. \n2. Переустановите драйверы. \n3. Проверьте службу "Диспетчер печати".' },
+
+    // --- СМАРТФОН ---
+    { id: 13, category: 'smartphone', title: 'Быстро разряжается', solution: '1. Проверьте износ АКБ (в настройках). \n2. Отключите фоновые приложения и GPS. \n3. Если греется в покое — короткое замыкание на плате.' },
+    { id: 14, category: 'smartphone', title: 'Не заряжается', solution: 'Аккуратно очистите гнездо зарядки зубочисткой (там скапливается пыль). Попробуйте другой кабель и блок питания.' },
+    { id: 15, category: 'smartphone', title: 'Разбит экран / Не работает тачскрин', solution: 'Требуется замена дисплейного модуля. Временное решение: подключить мышку через OTG-переходник, чтобы сохранить данные.' },
+
+    // --- МИКРОВОЛНОВКА ---
+    { id: 16, category: 'microwave', title: 'Искрит внутри', solution: 'Прогорела слюдяная пластина (картонка на правой стенке). Замените её и тщательно очистите камеру от жира.' },
+    { id: 17, category: 'microwave', title: 'Крутит, гудит, но не греет', solution: 'Вероятная причина: вышел из строя магнетрон или сгорел высоковольтный предохранитель.' },
+    { id: 18, category: 'microwave', title: 'Тарелка не крутится', solution: '1. Проверьте, правильно ли стоит роллер (колесико). \n2. Сгорел моторчик вращения поддона (на дне).' }
+];
 
 // --- DOM ELEMENTS ---
 const els = {
@@ -40,22 +74,29 @@ document.addEventListener('DOMContentLoaded', () => {
     initTabs();
     initDiagnosis();
     initChat();
-    loadKnowledgeBase();
+    initKnowledgeBase();
 });
 
 // --- TABS ---
 function initTabs() {
     els.tabs.forEach(btn => {
         btn.addEventListener('click', () => {
-            els.tabs.forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            
-            const viewId = btn.dataset.view;
-            els.views.forEach(v => {
-                v.classList.remove('active');
-                if (v.id === viewId) v.classList.add('active');
-            });
+            showTab(btn.dataset.view);
         });
+    });
+}
+
+function showTab(viewId) {
+    // Update Tabs
+    els.tabs.forEach(b => {
+        if (b.dataset.view === viewId) b.classList.add('active');
+        else b.classList.remove('active');
+    });
+    
+    // Update Views
+    els.views.forEach(v => {
+        if (v.id === viewId) v.classList.add('active');
+        else v.classList.remove('active');
     });
 }
 
@@ -210,27 +251,76 @@ function downloadChecklist() {
 function initChat() {
     if (els.sendBtn) els.sendBtn.addEventListener('click', sendChatMessage);
     
+    // File Attachment
+    if (els.attachBtn && els.chatFileInput) {
+        els.attachBtn.addEventListener('click', () => els.chatFileInput.click());
+        els.chatFileInput.addEventListener('change', uploadChatFile);
+    }
+    
     // Voice Input
     if (els.micBtn && ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         const recognition = new SpeechRecognition();
         recognition.lang = 'ru-RU';
+        recognition.continuous = false;
+        
+        recognition.onstart = () => {
+            els.micBtn.classList.add('recording');
+        };
+        
+        recognition.onend = () => {
+            els.micBtn.classList.remove('recording');
+        };
         
         els.micBtn.addEventListener('click', () => {
-            els.micBtn.style.color = 'red';
-            recognition.start();
+            if (els.micBtn.classList.contains('recording')) {
+                recognition.stop();
+            } else {
+                recognition.start();
+            }
         });
         
         recognition.onresult = (event) => {
             const transcript = event.results[0][0].transcript;
-            els.chatInput.value = transcript;
-            els.micBtn.style.color = 'inherit';
-            sendChatMessage();
+            // Вставка в поле ввода (не отправка)
+            const currentVal = els.chatInput.value;
+            els.chatInput.value = currentVal ? currentVal + ' ' + transcript : transcript;
         };
         
-        recognition.onerror = () => {
-            els.micBtn.style.color = 'inherit';
+        recognition.onerror = (e) => {
+            console.error(e);
+            els.micBtn.classList.remove('recording');
         };
+    }
+}
+
+async function uploadChatFile(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    addMessage('ai', `Загружаю файл: ${file.name}...`);
+    
+    try {
+        const fd = new FormData();
+        fd.append('file', file);
+        
+        const res = await fetch(`${API_BASE}/upload_chat_file`, {
+            method: 'POST',
+            body: fd
+        });
+        
+        if (!res.ok) throw new Error("Ошибка загрузки");
+        
+        const data = await res.json();
+        chatContext += `\n[Контекст из файла ${data.filename}]:\n${data.text}\n`;
+        
+        addMessage('ai', `Файл ${data.filename} обработан! Я изучил содержимое.`);
+        
+    } catch (err) {
+        console.error(err);
+        addMessage('ai', "Ошибка обработки файла.");
+    } finally {
+        els.chatFileInput.value = ''; // Reset
     }
 }
 
@@ -241,11 +331,26 @@ async function sendChatMessage() {
     addMessage('user', text);
     els.chatInput.value = '';
     
+    // Формируем полный текст с контекстом
+    let fullText = text;
+    if (chatContext) {
+        fullText += `\n${chatContext}`;
+        chatContext = ""; // Очищаем контекст после отправки (или можно оставлять)
+        // Обычно лучше очищать, чтобы не слать каждый раз огромный текст, 
+        // но зависит от логики backend. Если backend не хранит историю, то надо слать.
+        // В текущей реализации /ask_chat (ai_helper.py) не хранит историю.
+        // Но user просил "добавляй к СЛЕДУЮЩЕМУ вопросу".
+    }
+    
     try {
         const res = await fetch(`${API_BASE}/ask_chat`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ user_text: text })
+            body: JSON.stringify({ 
+                user_text: fullText,
+                // Если мы уже диагностировали устройство, передаем его тип
+                device_type: currentDevice 
+            })
         });
         
         const data = await res.json();
@@ -265,33 +370,56 @@ function addMessage(role, text) {
 }
 
 // --- KNOWLEDGE BASE ---
-async function loadKnowledgeBase() {
-    try {
-        const res = await fetch(`${API_BASE}/api/knowledge_base`);
-        if (!res.ok) return;
-        const db = await res.json();
-        renderKB(db);
-    } catch (err) {
-        console.error("KB Load Error", err);
-    }
+function initKnowledgeBase() {
+    renderKBFilters();
+    filterKB('all');
 }
 
-function renderKB(db) {
+function renderKBFilters() {
+    // Unique categories
+    const categories = ['all', ...new Set(kbData.map(item => item.category))];
+    
+    els.kbFilters.innerHTML = '';
+    categories.forEach(cat => {
+        const btn = document.createElement('button');
+        btn.className = 'chip';
+        btn.textContent = cat === 'all' ? 'Все' : cat;
+        if (cat === 'all') btn.classList.add('active');
+        
+        btn.addEventListener('click', () => {
+            // Update active state
+            document.querySelectorAll('.kb-filters .chip').forEach(c => c.classList.remove('active'));
+            btn.classList.add('active');
+            // Filter
+            filterKB(cat);
+        });
+        
+        els.kbFilters.appendChild(btn);
+    });
+}
+
+function filterKB(category) {
     els.kbList.innerHTML = '';
-    // Простой рендер, можно расширить
-    Object.keys(db).forEach(deviceKey => {
-        const deviceData = db[deviceKey];
-        if (deviceData.common_faults) {
-            deviceData.common_faults.forEach(fault => {
-                const card = document.createElement('div');
-                card.className = 'card kb-item';
-                card.innerHTML = `
-                    <div style="font-size:12px; color:#666;">${deviceKey}</div>
-                    <h3>${fault.title}</h3>
-                    <div class="solution-text" style="display:block; margin-top:5px;">${fault.solution}</div>
-                `;
-                els.kbList.appendChild(card);
-            });
-        }
+    
+    const filtered = category === 'all' 
+        ? kbData 
+        : kbData.filter(item => item.category === category);
+        
+    filtered.forEach(item => {
+        const card = document.createElement('div');
+        card.className = 'kb-card'; // New style class
+        card.innerHTML = `
+            <div class="kb-category">${item.category}</div>
+            <h3>${item.title}</h3>
+            <p style="margin-bottom:15px; color:#555;">${item.solution}</p>
+            <button class="kb-btn">Как починить?</button>
+        `;
+        
+        // Mock action
+        card.querySelector('.kb-btn').addEventListener('click', () => {
+            alert(`Инструкция для "${item.title}" пока в разработке!`);
+        });
+        
+        els.kbList.appendChild(card);
     });
 }
