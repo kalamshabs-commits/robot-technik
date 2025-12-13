@@ -1,23 +1,22 @@
 FROM python:3.10-slim
 
-# Установка системных зависимостей для OpenCV и YOLO
+# Установка системных библиотек для OpenCV
 RUN apt-get update && apt-get install -y \
-    libgl1 \
+    libgl1-mesa-glx \
     libglib2.0-0 \
     && rm -rf /var/lib/apt/lists/*
 
-# Рабочая директория
 WORKDIR /app
 
-# Копирование зависимостей и установка
+# Копируем список библиотек и устанавливаем их
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Копирование кода приложения
+# Копируем весь код проекта
 COPY . .
 
-# Настройка порта (Google Cloud Run ожидает 8080)
+# Открываем порт 8080
 ENV PORT=8080
 
-# Запуск приложения
-CMD streamlit run app_main.py --server.port=8080 --server.address=0.0.0.0
+# Команда запуска
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8080"]

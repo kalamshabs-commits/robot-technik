@@ -25,8 +25,7 @@ YOLO_CLASSES_RU = {
     'laptop': 'Ноутбук',
     'printer': 'Принтер',
     'microwave': 'Микроволновка',
-    'breadmaker': 'Хлебопечка',
-    # Добавь сюда другие, если твоя модель их знает (например, kettle, iron)
+    'breadmaker': 'Хлебопечка'
 }
 
 # --- DATABASE LOADING ---
@@ -46,30 +45,26 @@ def _load_faults_db() -> Dict:
         try:
             abs_path = os.path.abspath(path)
             if os.path.exists(abs_path):
-                print(f"✅ Loading DB from: {abs_path}")
+                logger.info(f"✅ Loading DB from: {abs_path}")
                 with open(abs_path, "r", encoding="utf-8") as f:
                     return json.load(f)
         except Exception as e:
-            print(f"⚠️ Error reading {path}: {e}")
+            logger.warning(f"⚠️ Error reading {path}: {e}")
             continue
             
-    print("❌ Critical: faults_library.json not found!")
+    logger.error("❌ Critical: faults_library.json not found!")
     return {}
 
 FAULTS_DB = _load_faults_db()
 
 # --- MODEL LOADING ---
-def _load_model():
+def get_model():
     # Ищем best.pt везде, где он может быть
-    current_dir = os.path.dirname(os.path.abspath(__file__))
     possible_paths = [
-        os.path.join(current_dir, "best.pt"),
-        os.path.join(current_dir, "..", "best.pt"),
-        "best.pt",
-        os.path.join(os.path.dirname(__file__), "best.pt"),
-        os.path.join(os.path.dirname(__file__), "..", "best.pt"),
-        "/app/best.pt",
-        "../best.pt"
+        "models/best.pt",
+        "../models/best.pt",
+        "./best.pt",
+        "/app/models/best.pt"
     ]
     
     for path in possible_paths:
@@ -83,7 +78,7 @@ def _load_model():
     logger.error("❌ КРИТИЧНО: Файл best.pt не найден! Распознавание не сработает.")
     return None
 
-MODEL = _load_model()
+MODEL = get_model()
 
 # --- 4. АНАЛИЗ ФОТО ---
 def analyze_image(image_bytes):
@@ -94,7 +89,6 @@ def analyze_image(image_bytes):
         img = Image.open(io.BytesIO(image_bytes)).convert("RGB")
         
         # Запускаем распознавание с порогом 15%
-        # (достаточно низкий, чтобы увидеть, но отсеять мусор)
         results = MODEL.predict(source=img, conf=0.15, verbose=False)
         
         if not results:
@@ -105,7 +99,7 @@ def analyze_image(image_bytes):
             if hasattr(r, 'boxes'):
                 for box in r.boxes:
                     cls_id = int(box.cls[0])
-                    # Получаем имя класса из модели (например, 'laptop')
+                    # Получаем имя класса из модели
                     eng_name = MODEL.names[cls_id] 
                     conf = float(box.conf[0])
                     
@@ -123,8 +117,7 @@ def analyze_image(image_bytes):
         return None, 0.0
 
 # --- 5. ЧАТ С ИИ ---
-# ИСПРАВЛЕНИЕ: Добавили context_text=None в скобки 👇
-def ask_ai(user_text, device_type=None, kb_info=None, context_text=None):
+def ask_ai(user_text, device_type=None, kb_info=None):
     if not client:
         return "Ошибка: API ключ не настроен."
 
@@ -136,10 +129,6 @@ def ask_ai(user_text, device_type=None, kb_info=None, context_text=None):
             "Будь краток и точен. "
             "Если тебя просят чек-лист, давай нумерованный список."
         )
-        
-        # Теперь эта строчка сработает, потому что мы объявили переменную выше
-        if context_text:
-            system_role += f"\nИспользуй эту информацию из документа: {context_text[:2000]}..." # Limit context size
         
         user_content = user_text
         if device_type:
@@ -169,5 +158,6 @@ def ask_ai(user_text, device_type=None, kb_info=None, context_text=None):
         
     except Exception as e:
         logger.error(f"DeepSeek Error: {e}")
-        return "Сервис ИИ временно недоступен." 
+        return "Сервис ИИ временно недоступен."
+ 
     

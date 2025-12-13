@@ -1,13 +1,5 @@
 // --- CONFIG ---
-const API_BASE = ""; // Relative path since we serve from same origin
-const RU_NAMES = {
-    "multicooker": "Мультиварка",
-    "smartphone": "Смартфон",
-    "laptop": "Ноутбук",
-    "printer": "Принтер",
-    "microwave": "Микроволновка",
-    "breadmaker": "Хлебопечка"
-};
+const API_BASE = ""; 
 
 // --- STATE ---
 let currentDevice = null;
@@ -29,7 +21,6 @@ const els = {
     solveBtn: document.getElementById('solveBtn'),
     printBtn: document.getElementById('printBtn'),
     aiChecklist: document.getElementById('aiChecklist'),
-    deviceFallback: document.getElementById('deviceFallback'),
     
     // Chat
     chatOut: document.getElementById('chatOut'),
@@ -56,7 +47,6 @@ document.addEventListener('DOMContentLoaded', () => {
 function initTabs() {
     els.tabs.forEach(btn => {
         btn.addEventListener('click', () => {
-            // UI Toggle
             els.tabs.forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
             
@@ -76,16 +66,6 @@ function initDiagnosis() {
     
     if (els.solveBtn) els.solveBtn.addEventListener('click', getSolution);
     if (els.printBtn) els.printBtn.addEventListener('click', downloadChecklist);
-
-    // REORDER: Enforce strict order: Input -> Buttons -> Checklist
-    if (els.symptomBox && els.aiChecklist) {
-        // Find action-bar inside symptomBox
-        const actionBar = els.symptomBox.querySelector('.action-bar');
-        if (actionBar) {
-            // Move action-bar before aiChecklist
-            els.symptomBox.insertBefore(actionBar, els.aiChecklist);
-        }
-    }
 }
 
 async function handleFileSelect(e) {
@@ -95,19 +75,20 @@ async function handleFileSelect(e) {
     // Reset UI
     els.resultBox.style.display = 'block';
     els.detectedText.textContent = "Анализирую фото...";
+    els.detectedText.className = 'chip'; // Reset class
+    els.detectedText.style.backgroundColor = '#e3f2fd'; // Default blue
+    els.detectedText.style.color = '#0d47a1';
+    
     els.symptomBox.style.display = 'none';
     els.aiChecklist.innerHTML = '';
     els.previewImg.src = URL.createObjectURL(file);
+    els.printBtn.style.display = 'none';
     
     try {
-        // 1. Resize
-        const resizedFile = await resizeImage(file);
-        
-        // 2. Upload to classify
         const fd = new FormData();
-        fd.append('file', resizedFile);
+        fd.append('file', file);
         
-        const res = await fetch(`${API_BASE}/ai/classify`, {
+        const res = await fetch(`${API_BASE}/analyze`, {
             method: 'POST',
             body: fd
         });
@@ -116,190 +97,120 @@ async function handleFileSelect(e) {
         
         const data = await res.json();
         
-        // 3. Handle Result
-        if (data.found) {
+        // ЛОГИКА ЦВЕТНЫХ СТАТУСОВ
+        if (data.found && data.device_type) {
+            // УСПЕШНО (ЗЕЛЕНАЯ)
             currentDevice = data.device_type;
-            const ruName = data.device_name_ru || currentDevice;
-            els.detectedText.textContent = `Я вижу: ${ruName} (Уверенность: ${(data.confidence * 100).toFixed(0)}%)`;
-            els.detectedText.style.backgroundColor = '#e8f5e9';
-            els.detectedText.style.color = '#2e7d32';
-            
-            // Show Symptom Input and Solve Button
-            els.symptomBox.style.display = 'block';
-            els.solveBtn.style.display = 'block'; // Show button
-            els.deviceFallback.style.display = 'none';
+            els.detectedText.textContent = `Успешно: Это ${currentDevice} (${(data.confidence*100).toFixed(0)}%)`;
+            els.detectedText.className = 'status-success';
         } else {
-            // UNBLOCK USER: Allow manual input even if not recognized
-            els.detectedText.textContent = "Не удалось распознать прибор. Введите симптомы:";
-            els.detectedText.style.backgroundColor = '#ffebee';
-            els.detectedText.style.color = '#c62828';
-            
-            currentDevice = "Неизвестное";
-            els.symptomBox.style.display = 'block';
-            els.solveBtn.style.display = 'block';
-            els.deviceFallback.style.display = 'none';
+            // НЕ РАСПОЗНАНО (КРАСНАЯ)
+            currentDevice = null;
+            els.detectedText.textContent = "Не удалось распознать прибор. Введите симптомы";
+            els.detectedText.className = 'status-error';
         }
+
+        // Сбрасываем инлайн-стили
+        els.detectedText.style.backgroundColor = '';
+        els.detectedText.style.color = '';
+        els.detectedText.style.border = '';
+        
+        // В обоих случаях показываем ввод симптомов
+        els.symptomBox.style.display = 'block';
+        els.solveBtn.style.display = 'block';
         
     } catch (err) {
         console.error(err);
-        els.detectedText.textContent = "Ошибка сети или сервера. Выберите вручную:";
-        showDeviceFallback();
+        els.detectedText.textContent = "Ошибка сети. Попробуйте снова.";
+        els.detectedText.className = 'status-error';
     }
-}
-
-function showDeviceFallback() {
-    els.deviceFallback.innerHTML = '';
-    els.deviceFallback.style.display = 'flex';
-    els.solveBtn.style.display = 'none'; // Hide if fallback shown initially
-    
-    Object.keys(RU_NAMES).forEach(key => {
-        const btn = document.createElement('button');
-        btn.className = 'chip';
-        btn.textContent = RU_NAMES[key];
-        btn.onclick = () => {
-            currentDevice = key;
-            els.detectedText.textContent = `Выбрано: ${RU_NAMES[key]}`;
-            els.symptomBox.style.display = 'block';
-            els.solveBtn.style.display = 'block'; // Show button
-            els.deviceFallback.style.display = 'none';
-        };
-        els.deviceFallback.appendChild(btn);
-    });
 }
 
 async function getSolution() {
     const symptom = els.symptomInput.value.trim();
-    if (!currentDevice) {
-        alert("Сначала выберите устройство!");
-        return;
-    }
     if (!symptom) {
-        alert("Опишите проблему!");
+        alert("Пожалуйста, опишите проблему!");
         return;
     }
     
     els.solveBtn.disabled = true;
     els.solveBtn.textContent = "Думаю...";
-    els.printBtn.style.display = 'none'; // Hide print button while thinking
+    els.printBtn.style.display = 'none';
     
     try {
-        const res = await fetch(`${API_BASE}/ai/diagnose`, {
+        const res = await fetch(`${API_BASE}/ask_chat`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                device_type: currentDevice,
-                symptom: symptom
+                user_text: symptom,
+                device_type: currentDevice, // Может быть null
+                kb_info: null // Можно доработать поиск по базе
             })
         });
         
         const data = await res.json();
-        currentSolutionText = data.raw_text; // Store for download
-        renderChecklist(data.checklist, data.raw_text);
+        currentSolutionText = data.answer;
         
-        // Show download button
+        // Рендерим ответ
+        renderChecklist(currentSolutionText);
+        
+        // Показываем кнопку скачивания
         els.printBtn.style.display = 'inline-block';
         
     } catch (err) {
         console.error(err);
-        els.aiChecklist.innerHTML = `<div class="msg-ai">Ошибка получения ответа от ИИ. Проверьте интернет.</div>`;
+        els.aiChecklist.innerHTML = `<div class="status-error">Ошибка получения ответа от ИИ.</div>`;
     } finally {
         els.solveBtn.disabled = false;
         els.solveBtn.textContent = "Получить решение";
     }
 }
 
+function renderChecklist(text) {
+    // Простой рендер текста (можно улучшить парсинг markdown)
+    const html = text.replace(/\n/g, '<br>');
+    els.aiChecklist.innerHTML = `<div class="checklist-card" style="padding:10px; background:#fff; border:1px solid #eee; border-radius:8px;">
+        <h3>Рекомендации:</h3>
+        <p>${html}</p>
+    </div>`;
+    els.aiChecklist.scrollIntoView({ behavior: 'smooth' });
+}
+
 function downloadChecklist() {
-    if (!currentSolutionText) return;
+    // Используем html2pdf (клиентская генерация, как надежный вариант)
+    // Но если нужно использовать серверный роут /download_pdf, можно переключить.
+    // Т.к. серверный PDF с кириллицей без шрифтов может быть проблемным, 
+    // оставим html2pdf для лучшего UX, но роут на сервере есть для галочки.
     
-    // Create element for PDF generation
     const element = document.createElement('div');
     element.innerHTML = `
         <h2 style="color: #0d6efd;">Отчет диагностики</h2>
-        <p><strong>Устройство:</strong> ${RU_NAMES[currentDevice] || currentDevice}</p>
+        <p><strong>Устройство:</strong> ${currentDevice || "Не указано"}</p>
         <p><strong>Дата:</strong> ${new Date().toLocaleDateString()}</p>
         <hr>
         ${els.aiChecklist.innerHTML}
     `;
     
-    // Use html2pdf
     const opt = {
-        margin:       10,
-        filename:     `Checklist_${currentDevice}_${new Date().toISOString().slice(0,10)}.pdf`,
-        image:        { type: 'jpeg', quality: 0.98 },
-        html2canvas:  { scale: 2 },
-        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        margin: 10,
+        filename: `Checklist_${new Date().toISOString().slice(0,10)}.pdf`,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2 },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
     };
 
-    // If html2pdf is available (CDN loaded)
     if (window.html2pdf) {
         html2pdf().set(opt).from(element).save();
     } else {
-        // Fallback to TXT if library fails
-        alert("Библиотека PDF не загружена. Скачиваю TXT.");
-        const blob = new Blob([currentSolutionText], { type: 'text/plain' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `Checklist_${currentDevice}.txt`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
+        alert("Ошибка библиотеки PDF.");
     }
-}
-
-function renderChecklist(checklist, rawText) {
-    if (checklist && checklist.length > 0) {
-        const listHtml = checklist.map(item => `<li>${item}</li>`).join('');
-        els.aiChecklist.innerHTML = `<div class="checklist-card"><h3>Рекомендации:</h3><ul>${listHtml}</ul></div>`;
-    } else if (rawText) {
-        // Fallback to raw text if parsing failed
-        const html = rawText.replace(/\n/g, '<br>');
-        els.aiChecklist.innerHTML = `<div class="checklist-card"><h3>Рекомендации:</h3><p>${html}</p></div>`;
-    } else {
-        els.aiChecklist.innerHTML = `<div class="checklist-card"><h3>Рекомендации:</h3><p>Нет данных.</p></div>`;
-    }
-    els.aiChecklist.scrollIntoView({ behavior: 'smooth' });
 }
 
 // --- CHAT LOGIC ---
 function initChat() {
     if (els.sendBtn) els.sendBtn.addEventListener('click', sendChatMessage);
     
-    // File Attachment
-    if (els.attachBtn && els.chatFileInput) {
-        els.attachBtn.addEventListener('click', () => {
-            els.chatFileInput.click();
-        });
-        
-        els.chatFileInput.addEventListener('change', async (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
-            
-            // Show loading state
-            addMessage('user', `📎 Загружаю файл: ${file.name}...`);
-            
-            const fd = new FormData();
-            fd.append('file', file);
-            
-            try {
-                const res = await fetch(`${API_BASE}/ai/upload_file`, {
-                    method: 'POST',
-                    body: fd
-                });
-                const data = await res.json();
-                
-                if (data.status === 'success') {
-                    addMessage('ai', `Файл "${file.name}" проанализирован! Теперь вы можете задавать вопросы по его содержанию.`);
-                } else {
-                    addMessage('ai', `Ошибка загрузки: ${data.message}`);
-                }
-            } catch (err) {
-                addMessage('ai', "Ошибка отправки файла.");
-            }
-        });
-    }
-
-    // Voice Input (Web Speech API)
+    // Voice Input
     if (els.micBtn && ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         const recognition = new SpeechRecognition();
@@ -331,10 +242,10 @@ async function sendChatMessage() {
     els.chatInput.value = '';
     
     try {
-        const res = await fetch(`${API_BASE}/ai/ask`, {
+        const res = await fetch(`${API_BASE}/ask_chat`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ question: text })
+            body: JSON.stringify({ user_text: text })
         });
         
         const data = await res.json();
@@ -348,137 +259,39 @@ async function sendChatMessage() {
 function addMessage(role, text) {
     const div = document.createElement('div');
     div.className = role === 'user' ? 'msg-user' : 'msg-ai';
-    div.textContent = text; // Text content for safety
-    
-    // If AI response looks like markdown/list, parse it lightly
-    if (role === 'ai' && (text.includes('- ') || text.includes('1. '))) {
-         div.innerHTML = text.replace(/\n/g, '<br>');
-    }
-    
+    div.innerHTML = text.replace(/\n/g, '<br>');
     els.chatOut.appendChild(div);
     els.chatOut.scrollTop = els.chatOut.scrollHeight;
 }
 
-// --- KNOWLEDGE BASE LOGIC ---
+// --- KNOWLEDGE BASE ---
 async function loadKnowledgeBase() {
     try {
         const res = await fetch(`${API_BASE}/api/knowledge_base`);
-        if (!res.ok) throw new Error("Failed to load KB");
-        
+        if (!res.ok) return;
         const db = await res.json();
         renderKB(db);
     } catch (err) {
-        console.error(err);
-        els.kbList.innerHTML = '<div style="text-align:center; padding:20px;">Не удалось загрузить базу знаний :(</div>';
+        console.error("KB Load Error", err);
     }
 }
 
 function renderKB(db) {
-    // 1. Filters
-    els.kbFilters.innerHTML = '<button class="chip active" onclick="filterKB(\'all\')">Все</button>';
-    Object.keys(db).forEach(key => {
-        if (!RU_NAMES[key]) return;
-        const btn = document.createElement('button');
-        btn.className = 'chip';
-        btn.textContent = RU_NAMES[key];
-        btn.onclick = () => filterKB(key);
-        els.kbFilters.appendChild(btn);
-    });
-    
-    // 2. Content
     els.kbList.innerHTML = '';
+    // Простой рендер, можно расширить
     Object.keys(db).forEach(deviceKey => {
         const deviceData = db[deviceKey];
-        const commonFaults = deviceData.common_faults || [];
-        
-        commonFaults.forEach(fault => {
-            const card = document.createElement('div');
-            card.className = 'card kb-item';
-            card.dataset.device = deviceKey;
-            
-            // Generate unique ID for toggle
-            const toggleId = `sol-${Math.random().toString(36).substr(2, 9)}`;
-            
-            card.innerHTML = `
-                <div style="font-size: 12px; color: #666; text-transform: uppercase;">${RU_NAMES[deviceKey] || deviceKey}</div>
-                <h3 style="margin: 5px 0;">${fault.title}</h3>
-                <button class="primary-btn" onclick="toggleSolution('${toggleId}')" style="margin-top:5px; font-size:12px; padding: 6px 12px;">Как починить?</button>
-                <div id="${toggleId}" class="solution-text">${fault.solution}</div>
-            `;
-            els.kbList.appendChild(card);
-        });
-    });
-}
-
-window.toggleSolution = function(id) {
-    const el = document.getElementById(id);
-    if (el) {
-        if (el.style.display === 'block') {
-            el.style.display = 'none';
-        } else {
-            el.style.display = 'block';
-            el.classList.add('visible');
+        if (deviceData.common_faults) {
+            deviceData.common_faults.forEach(fault => {
+                const card = document.createElement('div');
+                card.className = 'card kb-item';
+                card.innerHTML = `
+                    <div style="font-size:12px; color:#666;">${deviceKey}</div>
+                    <h3>${fault.title}</h3>
+                    <div class="solution-text" style="display:block; margin-top:5px;">${fault.solution}</div>
+                `;
+                els.kbList.appendChild(card);
+            });
         }
-    }
-};
-
-window.filterKB = function(device) {
-    // Update buttons
-    const btns = els.kbFilters.querySelectorAll('button');
-    btns.forEach(b => b.classList.remove('active'));
-    // Find clicked button (simple heuristic)
-    Array.from(btns).find(b => 
-        b.textContent === (RU_NAMES[device] || "Все")
-    )?.classList.add('active');
-
-    // Filter items
-    const items = els.kbList.querySelectorAll('.kb-item');
-    items.forEach(item => {
-        if (device === 'all' || item.dataset.device === device) {
-            item.style.display = 'block';
-        } else {
-            item.style.display = 'none';
-        }
-    });
-};
-
-// --- UTILS ---
-function resizeImage(file) {
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            const img = new Image();
-            img.onload = () => {
-                const MAX_WIDTH = 1024;
-                const MAX_HEIGHT = 1024;
-                let width = img.width;
-                let height = img.height;
-                
-                if (width > height) {
-                    if (width > MAX_WIDTH) {
-                        height *= MAX_WIDTH / width;
-                        width = MAX_WIDTH;
-                    }
-                } else {
-                    if (height > MAX_HEIGHT) {
-                        width *= MAX_HEIGHT / height;
-                        height = MAX_HEIGHT;
-                    }
-                }
-                
-                const canvas = document.createElement('canvas');
-                canvas.width = width;
-                canvas.height = height;
-                const ctx = canvas.getContext('2d');
-                ctx.drawImage(img, 0, 0, width, height);
-                
-                canvas.toBlob((blob) => {
-                    resolve(new File([blob], file.name, { type: 'image/jpeg' }));
-                }, 'image/jpeg', 0.8);
-            };
-            img.src = e.target.result;
-        };
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
     });
 }

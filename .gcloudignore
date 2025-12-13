@@ -1,13 +1,4 @@
 .git
-.gitignore
 .venv
 __pycache__
 node_modules
-Dockerfile
-README.md
-*.pyc
-*.pyo
-*.pyd
-
-# Исключение для модели (чтобы она загрузилась, даже если тяжелая)
-!models/best.pt

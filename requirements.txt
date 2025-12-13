@@ -1,6 +1,10 @@
-streamlit
+fastapi
+uvicorn
 ultralytics
-pillow
-numpy
-requests
+openai
+reportlab
+python-multipart
 opencv-python-headless
+numpy
+pillow
+requests

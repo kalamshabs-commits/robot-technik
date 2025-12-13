@@ -4,10 +4,17 @@ import tempfile
 import time
 from PIL import Image
 
-# Импорт логики (как в оригинале)
-from image_ai import recognize_objects
-from diagnostic_engine import diagnose
-from ai_helper import ask_ai
+# Импорт логики
+try:
+    from image_ai import recognize_objects
+    from diagnostic_engine import diagnose
+    from ai_helper import ask_ai
+except ImportError as e:
+    # Заглушка, чтобы сайт открылся даже если файлы логики сломаны (для отладки)
+    st.error(f"⚠️ Ошибка импорта модулей: {e}")
+    def recognize_objects(path): return []
+    def diagnose(d, m, o): return {}
+    def ask_ai(q, device_type=None): return "Ошибка модуля ИИ"
 
 # Настройка страницы
 st.set_page_config(
@@ -16,7 +23,7 @@ st.set_page_config(
     layout="centered"
 )
 
-# Стилизация (опционально, чтобы было похоже на Kivy-дизайн)
+# Стилизация
 st.markdown("""
     <style>
     .stButton>button {
@@ -28,7 +35,39 @@ st.markdown("""
     """, unsafe_allow_html=True)
 
 st.title("🤖 Robot Technician")
+
+# ==========================================
+# 🛠️ БЛОК ДИАГНОСТИКИ (ГЛАЗА АДМИНИСТРАТОРА)
+# ==========================================
+with st.expander("🛠️ СТАТУС СЕРВЕРА И ФАЙЛОВ (Нажми для проверки)", expanded=True):
+    st.write(f"📂 Рабочая папка сервера: `{os.getcwd()}`")
+    
+    # 1. Проверка папки models
+    if os.path.exists("models"):
+        st.success("✅ Папка 'models' найдена")
+        files_in_models = os.listdir("models")
+        st.write(f"Файлы внутри models: {files_in_models}")
+        
+        # 2. Проверка файла best.pt
+        if "best.pt" in files_in_models:
+            file_path = os.path.join("models", "best.pt")
+            size_mb = os.path.getsize(file_path) / (1024 * 1024)
+            st.success(f"✅ Файл 'best.pt' НАЙДЕН! Размер: {size_mb:.2f} MB")
+            
+            if size_mb < 1:
+                st.warning("⚠️ Внимание! Файл весит меньше 1 МБ. Возможно, он пустой или поврежден.")
+        else:
+            st.error("❌ ПУСТО: Файла 'best.pt' НЕТ внутри папки models!")
+    else:
+        st.error("❌ Папка 'models' НЕ НАЙДЕНА в корне проекта!")
+        st.write("Список файлов в корне:", os.listdir("."))
+
 st.write("Система диагностики техники с ИИ")
+st.divider()
+
+# ==========================================
+# ОСНОВНОЙ ИНТЕРФЕЙС
+# ==========================================
 
 # --- БОКОВАЯ ПАНЕЛЬ (Настройки) ---
 with st.sidebar:
@@ -66,7 +105,7 @@ if uploaded_file is not None:
     if st.button("🔍 Проанализировать", type="primary"):
         with st.spinner("⏳ Обработка изображения..."):
             try:
-                # 1. Сохраняем во временный файл (т.к. recognize_objects требует путь)
+                # 1. Сохраняем во временный файл
                 with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as tmp:
                     tmp.write(uploaded_file.getvalue())
                     temp_file_path = tmp.name
@@ -74,6 +113,9 @@ if uploaded_file is not None:
                 # 2. Распознавание объектов (YOLO)
                 detected_objects = recognize_objects(temp_file_path)
                 
+                # ОТЛАДКА: Показываем пользователю, что именно вернула функция (даже если пусто)
+                st.caption(f"🔧 Debug (сырые данные от YOLO): {detected_objects}")
+
                 # Если ничего не нашли
                 if not detected_objects or detected_objects == ["Ничего не найдено"]:
                     st.warning("⚠️ Объекты не распознаны. Попробуйте сделать более четкое фото.")
@@ -150,3 +192,4 @@ if st.button("Отправить вопрос"):
                 st.error(f"Ошибка связи с ИИ: {e}")
     else:
         st.warning("Введите текст вопроса.")
+        

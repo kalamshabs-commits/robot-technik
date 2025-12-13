@@ -49,28 +49,27 @@
           <img id="previewImg" alt="Preview" style="max-width:100%; border-radius: 8px;">
         </div>
         
-        <div id="detectedText" class="chip" style="margin-top: 10px; font-weight: bold;"></div>
+        <div id="detectedText" class="chip" style="margin-top: 10px; font-weight: bold; width: 100%; text-align: center; padding: 10px;"></div>
         
         <div id="symptomBox" style="margin-top:15px; display:none">
           <label for="symptomInput" style="font-size: 14px; color: #666;">Что случилось?</label>
-          <input id="symptomInput" type="text" placeholder="Например: жует бумагу" style="margin-bottom: 10px;">
+          <input id="symptomInput" type="text" placeholder="Например: не включается" style="margin-bottom: 10px;">
           
-        <div id="aiChecklist"></div>
-        <div id="deviceFallback" class="kb-filters" style="display:none; margin-top:8px"></div>
+          <button id="solveBtn" class="primary-btn" style="width:100%">Получить решение</button>
+        </div>
+
+        <div id="aiChecklist" style="margin-top: 15px;"></div>
         
-        <!-- Кнопки действий (перемещены вниз) -->
-        <div class="action-bar" style="margin-top:20px;">
-             <button id="solveBtn" class="primary-btn" style="display:none">Получить решение</button>
+        <!-- Кнопка скачивания -->
+        <div class="action-bar" style="margin-top:10px; justify-content: center;">
              <button id="printBtn" class="secondary-btn" style="display: none;">📥 Скачать чек-лист</button>
         </div>
       </div>
 
-      <!-- Кнопка установки (скрыта по умолчанию, покажется через JS) -->
-      <div class="action-bar" style="margin-top:20px; justify-content: center;">
-        <button id="installBtn" style="display:none; background-color: #4caf50; color: white; border: none; padding: 10px 20px; border-radius: 20px;">
+      <!-- Кнопка установки (фиксирована внизу) -->
+      <button id="installBtn" class="install-float-btn" style="display:none;">
           📲 Установить приложение
-        </button>
-      </div>
+      </button>
     </section>
 
     <!-- Вкладка ЧАТ -->

@@ -13,17 +13,26 @@ def get_yolo_model():
     if _model:
         return _model
     
-    # --- ИСПРАВЛЕНИЕ 1: АБСОЛЮТНЫЙ ПУТЬ ---
-    # Получаем папку, где лежит этот скрипт (image_ai.py)
+    # --- ИСПРАВЛЕНИЕ ПУТИ ---
+    # Получаем папку, где лежит этот скрипт
     current_dir = os.path.dirname(os.path.abspath(__file__))
-    # Ищем best.pt именно в этой папке
-    model_path = os.path.join(current_dir, "best.pt")
     
+    # 1. Сначала пробуем найти в папке models (это правильный вариант)
+    model_path = os.path.join(current_dir, "models", "best.pt")
+    
+    # 2. Если там нет, пробуем искать рядом (на всякий случай)
+    if not os.path.exists(model_path):
+        logger.warning(f"⚠️ В папке models пусто. Ищу best.pt в корне...")
+        model_path = os.path.join(current_dir, "best.pt")
+
     logger.info(f"🔍 Ищу модель по пути: {model_path}")
     
+    # Если файла нигде нет - берем стандартную модель, чтобы сайт не упал
     if not os.path.exists(model_path):
-        logger.error(f"❌ Файл {model_path} НЕ НАЙДЕН! Проверьте, загружен ли он в Git.")
-        return None
+        logger.error(f"❌ Файл best.pt НЕ НАЙДЕН! Загружаю стандартную yolov8n.pt")
+        # Это спасет приложение от краша
+        _model = YOLO("yolov8n.pt")
+        return _model
 
     try:
         logger.info(f"🔍 Загружаю модель из: {model_path}")
@@ -46,48 +55,56 @@ def recognize_objects(image_path):
     try:
         logger.info(f"📸 Анализирую файл: {image_path}")
 
-        # --- ИСПРАВЛЕНИЕ 2: СНИЖЕН ПОРОГ (conf=0.15) ---
-        # Было 0.25, стало 0.15. Теперь она увидит даже смутные объекты.
+        # Порог 0.15 - отлично для тестов
         results = model.predict(source=image_path, conf=0.15, verbose=False)
         detected = []
         
-        # Словарь перевода
+        # Словарь перевода (добавил 'cell phone' на всякий случай, это стандарт YOLO)
         translations = {
             "multicooker": "Мультиварка",
             "laptop": "Ноутбук",
-            "notebook": "Ноутбук", # На всякий случай
+            "notebook": "Ноутбук",
             "printer": "Принтер",
             "smartphone": "Смартфон",
             "phone": "Смартфон",
+            "cell phone": "Смартфон",  # <-- Важно добавить!
+            "mobile phone": "Смартфон",
             "microwave": "Микроволновка",
             "breadmaker": "Хлебопечка",
             "kettle": "Чайник",
             "iron": "Утюг",
             "monitor": "Монитор",
+            "tv": "Монитор", # Часто путает с телевизором
             "screen": "Монитор",
             "oven": "Духовка",
-            "washing machine": "Стиральная машина"
+            "washing machine": "Стиральная машина",
+            "refrigerator": "Холодильник",
+            "fridge": "Холодильник"
         }
 
         for r in results:
-            # Проверка для детеции (boxes)
+            # Детекция (boxes)
             if hasattr(r, 'boxes'):
                 for box in r.boxes:
                     cls_id = int(box.cls[0])
                     name = model.names[cls_id]
-                    # Переводим и добавляем (lower() для надежности)
+                    # Переводим
                     ru_name = translations.get(name.lower(), name) 
                     detected.append(ru_name)
-                    logger.info(f"   -> Найдено: {name} ({ru_name})")
+                    logger.info(f"   -> Найдено (box): {name} -> {ru_name}")
             
-            # Проверка для классификации (probs) - на случай если модель классификатор
+            # Классификация (probs)
             if hasattr(r, 'probs') and r.probs:
-                top1 = r.probs.top1
-                name = r.names[top1]
-                ru_name = translations.get(name.lower(), name)
-                detected.append(ru_name)
+                try:
+                    top1 = r.probs.top1
+                    name = r.names[top1]
+                    ru_name = translations.get(name.lower(), name)
+                    detected.append(ru_name)
+                    logger.info(f"   -> Найдено (prob): {name} -> {ru_name}")
+                except:
+                    pass
 
-        # Возвращаем уникальные объекты
+        # Если ничего не нашли
         if not detected:
             logger.warning("⚠️ Объекты не найдены (список пуст)")
             return ["Ничего не найдено"]
@@ -97,5 +114,3 @@ def recognize_objects(image_path):
     except Exception as e:
         logger.error(f"🔥 Ошибка анализа фото: {e}")
         return ["Ошибка анализа"]
-    
-    
