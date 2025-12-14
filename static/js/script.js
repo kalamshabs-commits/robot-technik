@@ -4,47 +4,45 @@ const API_BASE = "";
 // --- STATE ---
 let currentDevice = null;
 let currentSolutionText = "";
-let chatContext = ""; // Контекст из файла
+let chatContext = ""; 
 
-// --- KB DATA (Static) ---
+// --- 1. БАЗА ЗНАНИЙ (ТЕПЕРЬ НА РУССКОМ) ---
 const kbData = [
-    // --- МУЛЬТИВАРКА ---
-    { id: 1, category: 'multicooker', title: 'Ошибка E4: Датчик давления', solution: 'Проверьте шлейф верхнего датчика (в крышке). Часто перебивается при открытии/закрытии.' },
-    { id: 2, category: 'multicooker', title: 'Не держит давление / Пар из-под крышки', solution: 'Износилось или загрязнилось силиконовое уплотнительное кольцо. Промойте или замените его. Проверьте клапан выпуска пара.' },
-    { id: 3, category: 'multicooker', title: 'Не включается вообще', solution: 'Проверьте сетевой кабель. Если кабель исправен, скорее всего сгорел термопредохранитель на дне устройства.' },
+    // МУЛЬТИВАРКА
+    { id: 1, category: 'Мультиварка', title: 'Ошибка E4: Датчик давления', solution: 'Проверьте шлейф верхнего датчика (в крышке). Часто перебивается при открытии/закрытии.' },
+    { id: 2, category: 'Мультиварка', title: 'Не держит давление', solution: 'Износилось силиконовое уплотнительное кольцо. Промойте или замените его. Проверьте клапан.' },
+    { id: 3, category: 'Мультиварка', title: 'Не включается', solution: 'Проверьте кабель питания. Если цел — сгорел термопредохранитель на дне.' },
 
-    // --- ХЛЕБОПЕЧКА ---
-    { id: 4, category: 'breadmaker', title: 'Тесто не поднимается', solution: 'Проверьте срок годности дрожжей. Если дрожжи свежие, возможно неисправен ТЭН (нет нагрева для брожения).' },
-    { id: 5, category: 'breadmaker', title: 'Вал не вращается (гудит)', solution: 'Слетел или порвался ремень привода двигателя. Требуется разборка корпуса и замена ремня.' },
-    { id: 6, category: 'breadmaker', title: 'Ведро протекает или скрипит', solution: 'Износился сальник ведра. Требуется ремкомплект ведра (сальник + подшипник) или замена ведра целиком.' },
+    // ХЛЕБОПЕЧКА
+    { id: 4, category: 'Хлебопечка', title: 'Тесто не поднимается', solution: 'Дрожжи просрочены или неисправен ТЭН (нет нагрева).' },
+    { id: 5, category: 'Хлебопечка', title: 'Вал не вращается', solution: 'Слетел ремень привода. Нужно разобрать корпус и надеть ремень обратно.' },
+    { id: 6, category: 'Хлебопечка', title: 'Скрипит ведро', solution: 'Износ сальника ведра. Требуется ремкомплект ведра.' },
 
-    // --- НОУТБУК ---
-    { id: 7, category: 'laptop', title: 'Перегрев и выключение', solution: 'Забита пылью система охлаждения. Требуется разборка, чистка кулера и замена термопасты на процессоре.' },
-    { id: 8, category: 'laptop', title: 'Нет изображения (черный экран)', solution: 'Попробуйте подключить внешний монитор. Если там есть картинка — проблема в матрице или шлейфе. Если нет — проблема в видеочипе или ОЗУ.' },
-    { id: 9, category: 'laptop', title: 'Не заряжается', solution: '1. Проверьте блок питания мультиметром. \n2. Осмотрите гнездо зарядки (могло расшататься). \n3. Износ аккумулятора.' },
+    // НОУТБУК
+    { id: 7, category: 'Ноутбук', title: 'Сильно греется', solution: 'Забита система охлаждения. Нужна чистка от пыли и замена термопасты.' },
+    { id: 8, category: 'Ноутбук', title: 'Черный экран', solution: 'Проблема с оперативной памятью (RAM) или шлейфом матрицы. Попробуйте внешний монитор.' },
+    { id: 9, category: 'Ноутбук', title: 'Не заряжается', solution: 'Проверьте блок питания. Осмотрите гнездо зарядки (могло расшататься).' },
 
-    // --- ПРИНТЕР ---
-    { id: 10, category: 'printer', title: 'Полосы при печати', solution: 'Струйный: засохли дюзы (сделайте глубокую прочистку). Лазерный: износ фотобарабана или заканчивается тонер.' },
-    { id: 11, category: 'printer', title: 'Зажевал бумагу', solution: 'Откройте заднюю или переднюю крышку. Аккуратно вытяните лист по ходу движения бумаги. Проверьте, нет ли посторонних предметов (скрепок).' },
-    { id: 12, category: 'printer', title: 'Компьютер не видит принтер', solution: '1. Переподключите USB-кабель в другой порт. \n2. Переустановите драйверы. \n3. Проверьте службу "Диспетчер печати".' },
+    // ПРИНТЕР
+    { id: 10, category: 'Принтер', title: 'Полосы при печати', solution: 'Струйный: засохли дюзы (прочистка). Лазерный: мало тонера или износ фотобарабана.' },
+    { id: 11, category: 'Принтер', title: 'Зажевал бумагу', solution: 'Откройте заднюю крышку. Аккуратно вытяните лист по ходу движения.' },
+    { id: 12, category: 'Принтер', title: 'Компьютер не видит', solution: 'Переустановите драйверы или замените USB-кабель.' },
 
-    // --- СМАРТФОН ---
-    { id: 13, category: 'smartphone', title: 'Быстро разряжается', solution: '1. Проверьте износ АКБ (в настройках). \n2. Отключите фоновые приложения и GPS. \n3. Если греется в покое — короткое замыкание на плате.' },
-    { id: 14, category: 'smartphone', title: 'Не заряжается', solution: 'Аккуратно очистите гнездо зарядки зубочисткой (там скапливается пыль). Попробуйте другой кабель и блок питания.' },
-    { id: 15, category: 'smartphone', title: 'Разбит экран / Не работает тачскрин', solution: 'Требуется замена дисплейного модуля. Временное решение: подключить мышку через OTG-переходник, чтобы сохранить данные.' },
+    // СМАРТФОН
+    { id: 13, category: 'Смартфон', title: 'Быстро разряжается', solution: 'Износ АКБ или фоновые процессы. Проверьте состояние аккумулятора.' },
+    { id: 14, category: 'Смартфон', title: 'Не заряжается', solution: 'Грязь в гнезде зарядки. Аккуратно почистите зубочисткой.' },
+    { id: 15, category: 'Смартфон', title: 'Глючит тачскрин', solution: 'Если экран разбит — замена модуля. Если цел — программный сбой, перезагрузите.' },
 
-    // --- МИКРОВОЛНОВКА ---
-    { id: 16, category: 'microwave', title: 'Искрит внутри', solution: 'Прогорела слюдяная пластина (картонка на правой стенке). Замените её и тщательно очистите камеру от жира.' },
-    { id: 17, category: 'microwave', title: 'Крутит, гудит, но не греет', solution: 'Вероятная причина: вышел из строя магнетрон или сгорел высоковольтный предохранитель.' },
-    { id: 18, category: 'microwave', title: 'Тарелка не крутится', solution: '1. Проверьте, правильно ли стоит роллер (колесико). \n2. Сгорел моторчик вращения поддона (на дне).' }
+    // МИКРОВОЛНОВКА
+    { id: 16, category: 'Микроволновка', title: 'Искрит внутри', solution: 'Прогорела слюдяная пластина (справа). Замените её и очистите жир.' },
+    { id: 17, category: 'Микроволновка', title: 'Крутит, но не греет', solution: 'Сгорел высоковольтный предохранитель или магнетрон.' },
+    { id: 18, category: 'Микроволновка', title: 'Не крутится тарелка', solution: 'Слетел роллер (колесико) или сгорел моторчик вращения.' }
 ];
 
 // --- DOM ELEMENTS ---
 const els = {
     tabs: document.querySelectorAll('.tab'),
     views: document.querySelectorAll('.view'),
-    
-    // Diagnosis
     camInput: document.getElementById('cameraInput'),
     galInput: document.getElementById('galleryInput'),
     resultBox: document.getElementById('resultBox'),
@@ -55,16 +53,12 @@ const els = {
     solveBtn: document.getElementById('solveBtn'),
     printBtn: document.getElementById('printBtn'),
     aiChecklist: document.getElementById('aiChecklist'),
-    
-    // Chat
     chatOut: document.getElementById('chatOut'),
     chatInput: document.getElementById('chatInput'),
     sendBtn: document.getElementById('sendBtn'),
     micBtn: document.getElementById('micBtn'),
     attachBtn: document.getElementById('attachBtn'),
     chatFileInput: document.getElementById('chatFileInput'),
-    
-    // Knowledge
     kbFilters: document.getElementById('kbFilters'),
     kbList: document.getElementById('kbList')
 };
@@ -74,37 +68,26 @@ document.addEventListener('DOMContentLoaded', () => {
     initTabs();
     initDiagnosis();
     initChat();
-    initKnowledgeBase();
+    initKB();
+    initPWA();
 });
 
 // --- TABS ---
 function initTabs() {
     els.tabs.forEach(btn => {
-        btn.addEventListener('click', () => {
-            showTab(btn.dataset.view);
-        });
+        btn.addEventListener('click', () => showTab(btn.dataset.view));
     });
 }
 
 function showTab(viewId) {
-    // Update Tabs
-    els.tabs.forEach(b => {
-        if (b.dataset.view === viewId) b.classList.add('active');
-        else b.classList.remove('active');
-    });
-    
-    // Update Views
-    els.views.forEach(v => {
-        if (v.id === viewId) v.classList.add('active');
-        else v.classList.remove('active');
-    });
+    els.tabs.forEach(b => b.classList.toggle('active', b.dataset.view === viewId));
+    els.views.forEach(v => v.classList.toggle('active', v.id === viewId));
 }
 
-// --- DIAGNOSIS LOGIC ---
+// --- DIAGNOSIS ---
 function initDiagnosis() {
     if (els.camInput) els.camInput.addEventListener('change', handleFileSelect);
     if (els.galInput) els.galInput.addEventListener('change', handleFileSelect);
-    
     if (els.solveBtn) els.solveBtn.addEventListener('click', getSolution);
     if (els.printBtn) els.printBtn.addEventListener('click', downloadChecklist);
 }
@@ -113,13 +96,11 @@ async function handleFileSelect(e) {
     const file = e.target.files[0];
     if (!file) return;
     
-    // Reset UI
+    // UI Reset
     els.resultBox.style.display = 'block';
-    els.detectedText.textContent = "Анализирую фото...";
-    els.detectedText.className = 'chip'; // Reset class
-    els.detectedText.style.backgroundColor = '#e3f2fd'; // Default blue
-    els.detectedText.style.color = '#0d47a1';
-    
+    els.detectedText.innerText = "Анализирую фото...";
+    els.detectedText.className = 'chip';
+    els.detectedText.style.background = '#e3f2fd';
     els.symptomBox.style.display = 'none';
     els.aiChecklist.innerHTML = '';
     els.previewImg.src = URL.createObjectURL(file);
@@ -128,298 +109,231 @@ async function handleFileSelect(e) {
     try {
         const fd = new FormData();
         fd.append('file', file);
-        
-        const res = await fetch(`${API_BASE}/analyze`, {
-            method: 'POST',
-            body: fd
-        });
-        
-        if (!res.ok) throw new Error("Ошибка сервера");
-        
+        const res = await fetch(`${API_BASE}/analyze`, { method: 'POST', body: fd });
         const data = await res.json();
         
-        // ЛОГИКА ЦВЕТНЫХ СТАТУСОВ
         if (data.found && data.device_type) {
-            // УСПЕШНО (ЗЕЛЕНАЯ)
             currentDevice = data.device_type;
-            els.detectedText.textContent = `Успешно: Это ${currentDevice} (${(data.confidence*100).toFixed(0)}%)`;
+            els.detectedText.innerText = `Успешно: Это ${currentDevice} (${(data.confidence*100).toFixed(0)}%)`;
             els.detectedText.className = 'status-success';
         } else {
-            // НЕ РАСПОЗНАНО (КРАСНАЯ)
             currentDevice = null;
-            els.detectedText.textContent = "Не удалось распознать прибор. Введите симптомы";
+            els.detectedText.innerText = "Не удалось распознать прибор. Введите симптомы:";
             els.detectedText.className = 'status-error';
         }
-
-        // Сбрасываем инлайн-стили
-        els.detectedText.style.backgroundColor = '';
-        els.detectedText.style.color = '';
-        els.detectedText.style.border = '';
+        // Сброс инлайн стилей чтобы работали классы
+        els.detectedText.style.background = '';
         
-        // В обоих случаях показываем ввод симптомов
         els.symptomBox.style.display = 'block';
         els.solveBtn.style.display = 'block';
-        
     } catch (err) {
-        console.error(err);
-        els.detectedText.textContent = "Ошибка сети. Попробуйте снова.";
+        els.detectedText.innerText = "Ошибка сети.";
         els.detectedText.className = 'status-error';
     }
 }
 
 async function getSolution() {
     const symptom = els.symptomInput.value.trim();
-    if (!symptom) {
-        alert("Пожалуйста, опишите проблему!");
-        return;
-    }
+    if (!symptom) return alert("Опишите проблему!");
     
     els.solveBtn.disabled = true;
-    els.solveBtn.textContent = "Думаю...";
+    els.solveBtn.innerText = "Думаю...";
     els.printBtn.style.display = 'none';
     
     try {
         const res = await fetch(`${API_BASE}/ask_chat`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                user_text: symptom,
-                device_type: currentDevice, // Может быть null
-                kb_info: null // Можно доработать поиск по базе
-            })
+            body: JSON.stringify({ user_text: symptom, device_type: currentDevice })
         });
-        
         const data = await res.json();
         currentSolutionText = data.answer;
         
-        // Рендерим ответ
-        renderChecklist(currentSolutionText);
-        
-        // Показываем кнопку скачивания
+        // Рендер ответа
+        const html = currentSolutionText.replace(/\n/g, '<br>');
+        els.aiChecklist.innerHTML = `<div class="kb-card"><h3>Решение:</h3><p>${html}</p></div>`;
         els.printBtn.style.display = 'inline-block';
-        
+        els.aiChecklist.scrollIntoView({ behavior: 'smooth' });
     } catch (err) {
-        console.error(err);
-        els.aiChecklist.innerHTML = `<div class="status-error">Ошибка получения ответа от ИИ.</div>`;
+        alert("Ошибка ИИ");
     } finally {
         els.solveBtn.disabled = false;
-        els.solveBtn.textContent = "Получить решение";
+        els.solveBtn.innerText = "Получить решение";
     }
 }
 
-function renderChecklist(text) {
-    // Простой рендер текста (можно улучшить парсинг markdown)
-    const html = text.replace(/\n/g, '<br>');
-    els.aiChecklist.innerHTML = `<div class="checklist-card" style="padding:10px; background:#fff; border:1px solid #eee; border-radius:8px;">
-        <h3>Рекомендации:</h3>
-        <p>${html}</p>
-    </div>`;
-    els.aiChecklist.scrollIntoView({ behavior: 'smooth' });
-}
-
-function downloadChecklist() {
-    // Используем html2pdf (клиентская генерация, как надежный вариант)
-    // Но если нужно использовать серверный роут /download_pdf, можно переключить.
-    // Т.к. серверный PDF с кириллицей без шрифтов может быть проблемным, 
-    // оставим html2pdf для лучшего UX, но роут на сервере есть для галочки.
-    
-    const element = document.createElement('div');
-    element.innerHTML = `
-        <h2 style="color: #0d6efd;">Отчет диагностики</h2>
-        <p><strong>Устройство:</strong> ${currentDevice || "Не указано"}</p>
-        <p><strong>Дата:</strong> ${new Date().toLocaleDateString()}</p>
-        <hr>
-        ${els.aiChecklist.innerHTML}
-    `;
-    
-    const opt = {
-        margin: 10,
-        filename: `Checklist_${new Date().toISOString().slice(0,10)}.pdf`,
-        image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2 },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-    };
-
-    if (window.html2pdf) {
-        html2pdf().set(opt).from(element).save();
-    } else {
-        alert("Ошибка библиотеки PDF.");
+async function downloadChecklist() {
+    const res = await fetch('/download_pdf', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ device: currentDevice || "Устройство", text: currentSolutionText })
+    });
+    if(res.ok) {
+        const blob = await res.blob();
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'checklist.pdf';
+        a.click();
     }
 }
 
-// --- CHAT LOGIC ---
+// --- CHAT ---
 function initChat() {
     if (els.sendBtn) els.sendBtn.addEventListener('click', sendChatMessage);
-    
-    // File Attachment
-    if (els.attachBtn && els.chatFileInput) {
+    if (els.attachBtn) {
         els.attachBtn.addEventListener('click', () => els.chatFileInput.click());
         els.chatFileInput.addEventListener('change', uploadChatFile);
     }
     
-    // Voice Input
-    if (els.micBtn && ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
-        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    // МИКРОФОН (Запись голоса)
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (els.micBtn && SpeechRecognition) {
         const recognition = new SpeechRecognition();
         recognition.lang = 'ru-RU';
         recognition.continuous = false;
         
-        recognition.onstart = () => {
-            els.micBtn.classList.add('recording');
+        els.micBtn.onclick = () => {
+            if (els.micBtn.classList.contains('recording')) recognition.stop();
+            else recognition.start();
         };
         
-        recognition.onend = () => {
-            els.micBtn.classList.remove('recording');
-        };
+        recognition.onstart = () => els.micBtn.classList.add('recording');
+        recognition.onend = () => els.micBtn.classList.remove('recording');
         
-        els.micBtn.addEventListener('click', () => {
-            if (els.micBtn.classList.contains('recording')) {
-                recognition.stop();
-            } else {
-                recognition.start();
-            }
-        });
-        
-        recognition.onresult = (event) => {
-            const transcript = event.results[0][0].transcript;
-            // Вставка в поле ввода (не отправка)
-            const currentVal = els.chatInput.value;
-            els.chatInput.value = currentVal ? currentVal + ' ' + transcript : transcript;
+        recognition.onresult = (e) => {
+            const txt = e.results[0][0].transcript;
+            els.chatInput.value = els.chatInput.value ? els.chatInput.value + ' ' + txt : txt;
         };
-        
-        recognition.onerror = (e) => {
-            console.error(e);
-            els.micBtn.classList.remove('recording');
-        };
+    } else {
+        if(els.micBtn) els.micBtn.style.display = 'none';
     }
 }
 
 async function uploadChatFile(e) {
     const file = e.target.files[0];
     if (!file) return;
+    addMessage('ai', `📎 Загружаю ${file.name}...`);
     
-    addMessage('ai', `Загружаю файл: ${file.name}...`);
-    
+    const fd = new FormData();
+    fd.append('file', file);
     try {
-        const fd = new FormData();
-        fd.append('file', file);
-        
-        const res = await fetch(`${API_BASE}/upload_chat_file`, {
-            method: 'POST',
-            body: fd
-        });
-        
-        if (!res.ok) throw new Error("Ошибка загрузки");
-        
+        const res = await fetch('/upload_chat_file', { method: 'POST', body: fd });
         const data = await res.json();
-        chatContext += `\n[Контекст из файла ${data.filename}]:\n${data.text}\n`;
-        
-        addMessage('ai', `Файл ${data.filename} обработан! Я изучил содержимое.`);
-        
-    } catch (err) {
-        console.error(err);
-        addMessage('ai', "Ошибка обработки файла.");
-    } finally {
-        els.chatFileInput.value = ''; // Reset
-    }
+        chatContext = data.text;
+        addMessage('ai', `Файл прочитан! Задавайте вопросы.`);
+    } catch (err) { addMessage('ai', "Ошибка чтения файла."); }
 }
 
 async function sendChatMessage() {
     const text = els.chatInput.value.trim();
     if (!text) return;
-    
     addMessage('user', text);
     els.chatInput.value = '';
     
-    // Формируем полный текст с контекстом
-    let fullText = text;
-    if (chatContext) {
-        fullText += `\n${chatContext}`;
-        chatContext = ""; // Очищаем контекст после отправки (или можно оставлять)
-        // Обычно лучше очищать, чтобы не слать каждый раз огромный текст, 
-        // но зависит от логики backend. Если backend не хранит историю, то надо слать.
-        // В текущей реализации /ask_chat (ai_helper.py) не хранит историю.
-        // Но user просил "добавляй к СЛЕДУЮЩЕМУ вопросу".
-    }
+    const fullText = chatContext ? `Контекст файла:\n${chatContext}\n\nВопрос: ${text}` : text;
+    chatContext = ""; 
     
     try {
-        const res = await fetch(`${API_BASE}/ask_chat`, {
+        const res = await fetch('/ask_chat', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-                user_text: fullText,
-                // Если мы уже диагностировали устройство, передаем его тип
-                device_type: currentDevice 
-            })
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ user_text: fullText, device_type: currentDevice })
         });
-        
         const data = await res.json();
         addMessage('ai', data.answer);
-        
-    } catch (err) {
-        addMessage('ai', "Извините, сервер не отвечает.");
-    }
+    } catch(e) { addMessage('ai', "Ошибка сети."); }
 }
 
 function addMessage(role, text) {
     const div = document.createElement('div');
     div.className = role === 'user' ? 'msg-user' : 'msg-ai';
     div.innerHTML = text.replace(/\n/g, '<br>');
+    div.style.padding = "10px";
+    div.style.borderRadius = "10px";
+    div.style.marginBottom = "10px";
+    div.style.maxWidth = "80%";
+    if(role==='user') { div.style.background="#1976d2"; div.style.color="white"; div.style.marginLeft="auto"; }
+    else { div.style.background="#f1f5f9"; div.style.color="#333"; }
     els.chatOut.appendChild(div);
-    els.chatOut.scrollTop = els.chatOut.scrollHeight;
+    els.chatOut.scrollTop = 9999;
 }
 
-// --- KNOWLEDGE BASE ---
-function initKnowledgeBase() {
-    renderKBFilters();
-    filterKB('all');
+// --- KNOWLEDGE BASE (ФИЛЬТРЫ + АККОРДЕОН) ---
+function initKB() {
+    renderFilters();
+    renderKB('Все');
 }
 
-function renderKBFilters() {
-    // Unique categories
-    const categories = ['all', ...new Set(kbData.map(item => item.category))];
-    
+function renderFilters() {
+    const cats = ['Все', ...new Set(kbData.map(i => i.category))];
     els.kbFilters.innerHTML = '';
-    categories.forEach(cat => {
+    cats.forEach(c => {
         const btn = document.createElement('button');
-        btn.className = 'chip';
-        btn.textContent = cat === 'all' ? 'Все' : cat;
-        if (cat === 'all') btn.classList.add('active');
-        
-        btn.addEventListener('click', () => {
-            // Update active state
-            document.querySelectorAll('.kb-filters .chip').forEach(c => c.classList.remove('active'));
+        btn.className = `chip ${c==='Все'?'active':''}`;
+        btn.innerText = c;
+        btn.onclick = () => {
+            document.querySelectorAll('.chip').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
-            // Filter
-            filterKB(cat);
-        });
-        
+            renderKB(c);
+        };
         els.kbFilters.appendChild(btn);
     });
 }
 
-function filterKB(category) {
+function renderKB(filter) {
     els.kbList.innerHTML = '';
+    const items = filter === 'Все' ? kbData : kbData.filter(i => i.category === filter);
     
-    const filtered = category === 'all' 
-        ? kbData 
-        : kbData.filter(item => item.category === category);
+    items.forEach(item => {
+        const div = document.createElement('div');
+        div.className = 'kb-card';
+        const id = 'sol-' + Math.random().toString(36).substr(2, 9);
         
-    filtered.forEach(item => {
-        const card = document.createElement('div');
-        card.className = 'kb-card'; // New style class
-        card.innerHTML = `
+        // ЛОГИКА АККОРДЕОНА: Ответ скрыт (display:none), кнопка вызывает toggle
+        div.innerHTML = `
             <div class="kb-category">${item.category}</div>
             <h3>${item.title}</h3>
-            <p style="margin-bottom:15px; color:#555;">${item.solution}</p>
-            <button class="kb-btn">Как починить?</button>
+            
+            <button class="kb-btn" onclick="toggleSol('${id}', this)">Как починить?</button>
+            
+            <div id="${id}" style="display:none; margin-top:15px; padding-top:10px; border-top:1px solid #eee; color:#444; line-height:1.5;">
+                ${item.solution.replace(/\n/g, '<br>')}
+            </div>
         `;
-        
-        // Mock action
-        card.querySelector('.kb-btn').addEventListener('click', () => {
-            alert(`Инструкция для "${item.title}" пока в разработке!`);
-        });
-        
-        els.kbList.appendChild(card);
+        els.kbList.appendChild(div);
     });
+}
+
+// Функция переключения (Глобальная)
+window.toggleSol = function(id, btn) {
+    const div = document.getElementById(id);
+    if (div.style.display === 'none') {
+        div.style.display = 'block';
+        btn.innerText = 'Скрыть решение';
+        btn.style.background = '#64748b'; // Серый цвет
+    } else {
+        div.style.display = 'none';
+        btn.innerText = 'Как починить?';
+        btn.style.background = '#1976d2'; // Синий цвет
+    }
+};
+
+// --- PWA INSTALL ---
+function initPWA() {
+    let deferredPrompt;
+    const installBtn = document.getElementById('installBtn');
+    window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredPrompt = e;
+        if(installBtn) installBtn.style.display = 'block';
+    });
+    if(installBtn) {
+        installBtn.addEventListener('click', async () => {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                deferredPrompt = null;
+                installBtn.style.display = 'none';
+            }
+        });
+    }
 }

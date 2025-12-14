@@ -5,6 +5,7 @@ import logging
 from PIL import Image
 from ultralytics import YOLO
 from openai import OpenAI
+import google.generativeai as genai
 from typing import List, Dict, Optional, Tuple
 
 # --- ИСПРАВЛЕНИЕ: НАСТРОЙКА ЛОГГЕРА ---
@@ -17,6 +18,9 @@ client = OpenAI(
     base_url="https://api.deepseek.com"
 )
 MODEL_NAME = "deepseek-chat"
+
+# --- GEMINI CONFIGURATION ---
+genai.configure(api_key="AIzaSyAfZS4B5D-JUTMgaRfQbhQZUlbgWnIEXrU")
 
 # --- 2. ЧЕСТНЫЙ СЛОВАРЬ (Только твои классы) ---
 YOLO_CLASSES_RU = {
@@ -81,45 +85,68 @@ def get_model():
 MODEL = get_model()
 
 # --- 4. АНАЛИЗ ФОТО ---
-def analyze_image(image_bytes):
-    if not MODEL:
-        return None, 0.0
-        
+def ask_gemini_vision(image_bytes):
     try:
-        img = Image.open(io.BytesIO(image_bytes)).convert("RGB")
+        img = Image.open(io.BytesIO(image_bytes))
+        model = genai.GenerativeModel('gemini-1.5-flash')
+        response = model.generate_content([
+            "Посмотри на фото. Выбери ОДИН ответ из списка: Мультиварка, Смартфон, Ноутбук, Принтер, Микроволновка, Хлебопечка. Если не уверен, напиши 'Не распознано'.",
+            img
+        ])
+        text = response.text.strip()
+        logger.info(f"Gemini fallback result: {text}")
         
-        # Запускаем распознавание с порогом 15%
-        results = MODEL.predict(source=img, conf=0.15, verbose=False)
+        # Очистка от лишних символов (если модель добавит точку или пробел)
+        text = text.replace('.', '').strip()
         
-        if not results:
+        if "Не распознано" in text:
             return None, 0.0
-
-        # ПЕРЕБИРАЕМ ВСЕ НАЙДЕННЫЕ ОБЪЕКТЫ
-        best_name = None
-        best_conf = 0.0
-
-        for r in results:
-            if hasattr(r, 'boxes'):
-                for box in r.boxes:
-                    cls_id = int(box.cls[0])
-                    eng_name = MODEL.names[cls_id] 
-                    conf = float(box.conf[0])
-                    
-                    logger.info(f"YOLO увидела: {eng_name} ({conf:.2f})")
-
-                    if eng_name in YOLO_CLASSES_RU:
-                        if conf > best_conf:
-                            best_conf = conf
-                            best_name = YOLO_CLASSES_RU[eng_name]
-        
-        if best_name:
-            return best_name, best_conf
-        
-        return None, 0.0
-        
+            
+        return text, 0.99 # Gemini почти всегда права
     except Exception as e:
-        logger.error(f"❌ Ошибка анализа: {e}")
+        logger.error(f"Gemini Error: {e}")
         return None, 0.0
+
+def analyze_image(image_bytes):
+    # 1. Сначала пробуем YOLO (быстро и дешево)
+    if MODEL:
+        try:
+            img = Image.open(io.BytesIO(image_bytes)).convert("RGB")
+            
+            # Запускаем распознавание с порогом 15%
+            results = MODEL.predict(source=img, conf=0.15, verbose=False)
+            
+            best_name = None
+            best_conf = 0.0
+
+            if results:
+                # ПЕРЕБИРАЕМ ВСЕ НАЙДЕННЫЕ ОБЪЕКТЫ
+                for r in results:
+                    if hasattr(r, 'boxes'):
+                        for box in r.boxes:
+                            cls_id = int(box.cls[0])
+                            eng_name = MODEL.names[cls_id] 
+                            conf = float(box.conf[0])
+                            
+                            logger.info(f"YOLO увидела: {eng_name} ({conf:.2f})")
+
+                            if eng_name in YOLO_CLASSES_RU:
+                                if conf > best_conf:
+                                    best_conf = conf
+                                    best_name = YOLO_CLASSES_RU[eng_name]
+            
+            # УСЛОВИЕ: Если YOLO нашла объект и уверенность > 50%
+            if best_name and best_conf > 0.50:
+                logger.info(f"✅ YOLO справилась: {best_name} ({best_conf})")
+                return best_name, best_conf
+                
+        except Exception as e:
+            logger.error(f"❌ Ошибка YOLO: {e}")
+            # Не выходим, идем к Gemini
+    
+    # 2. FALLBACK: Если YOLO не справилась, зовем Gemini
+    logger.info("⚠️ YOLO не уверена или ошиблась. Вызываю Gemini...")
+    return ask_gemini_vision(image_bytes)
 
 # --- 5. ЧАТ С ИИ ---
 def ask_ai(user_text, device_type=None, kb_info=None):
